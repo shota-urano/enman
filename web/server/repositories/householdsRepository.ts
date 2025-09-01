@@ -33,5 +33,23 @@ export const householdsRepository = {
 
     return { id: hh.id, name: hh.name }
   },
+
+  async join(userId: string, householdId: string): Promise<void> {
+    const supabase = createSupabaseAdmin()
+    // Upsert to avoid duplicate unique (household_id, user_id) violation
+    const { error } = await supabase
+      .from('household_members')
+      .upsert(
+        {
+          household_id: householdId,
+          user_id: userId,
+          role: 'member',
+          joined_at: new Date().toISOString(),
+        },
+        { onConflict: 'household_id,user_id', ignoreDuplicates: true },
+      )
+
+    if (error) throw error
+  },
 }
 
