@@ -22,6 +22,7 @@ vi.mock('@/server/repositories/householdsRepository', () => ({
 import * as authModule from '@/server/utils/auth'
 import type { Session } from '@/server/utils/auth'
 import * as inviteModule from '@/server/services/inviteService'
+import type { InvitePayload } from '@/server/services/inviteService'
 import * as repoModule from '@/server/repositories/householdsRepository'
 import { unauthorized, badRequest } from '@/server/utils/errors'
 
@@ -77,12 +78,13 @@ describe('POST /api/households/join', () => {
   it('joins household and returns 200 with household_id', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
-    inviteService.verifyToken.mockReturnValue({
+    const payload: InvitePayload = {
       household_id: 'h-1',
       inviter: 'u-2',
       iat: Math.floor(Date.now()/1000) - 10,
       exp: Math.floor(Date.now()/1000) + 3600,
-    } as any)
+    }
+    inviteService.verifyToken.mockReturnValue(payload)
     householdsRepository.join.mockResolvedValue(undefined)
 
     const req = makeReq({ token: 'tok-abc' })
