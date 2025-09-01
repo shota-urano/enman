@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { NextRequest } from 'next/server'
 
 // System under test
-import * as route from '../../app/api/households/route.ts'
+import * as route from '@/app/api/households/route'
 
 // Mocks
 vi.mock('@/server/utils/auth', () => ({
@@ -16,7 +16,9 @@ vi.mock('@/server/repositories/householdsRepository', () => ({
 }))
 
 import * as authModule from '@/server/utils/auth'
+import type { Session } from '@/server/utils/auth'
 import * as repoModule from '@/server/repositories/householdsRepository'
+import type { Household } from '@/server/repositories/householdsRepository'
 import { unauthorized } from '@/server/utils/errors'
 
 // Helpers
@@ -41,10 +43,8 @@ describe('POST /api/households', () => {
   })
 
   it('returns 400 when body is invalid', async () => {
-    getSession.mockResolvedValue({
-      userId: 'u-1',
-      token: 't',
-    } as any)
+    const session: Session = { userId: 'u-1', token: 't' }
+    getSession.mockResolvedValue(session)
 
     const req = makeReq({})
     const res = await route.POST(req)
@@ -64,12 +64,11 @@ describe('POST /api/households', () => {
   })
 
   it('creates household and returns 201', async () => {
-    getSession.mockResolvedValue({
-      userId: 'u-1',
-      token: 't',
-    } as any)
+    const session: Session = { userId: 'u-1', token: 't' }
+    getSession.mockResolvedValue(session)
 
-    householdsRepository.create.mockResolvedValue({ id: 'h-1', name: 'Home' } as any)
+    const hh: Household = { id: 'h-1', name: 'Home' }
+    householdsRepository.create.mockResolvedValue(hh)
 
     const req = makeReq({ name: 'Home' })
     const res = await route.POST(req)
