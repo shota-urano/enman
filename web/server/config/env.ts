@@ -15,6 +15,7 @@ export const serverEnv = {
   SUPABASE_SERVICE_ROLE: get("SUPABASE_SERVICE_ROLE"),
   MCP_ENDPOINT: get("MCP_ENDPOINT"),
   MCP_AUTH_TOKEN: get("MCP_AUTH_TOKEN"),
+  INVITE_SECRET: get("INVITE_SECRET"),
 }
 
 export type ServerEnv = typeof serverEnv
