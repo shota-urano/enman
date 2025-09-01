@@ -6,12 +6,19 @@
 - Authenticated ユーザーで `auth.uid()` が得られる状態
 - household のメンバーであること（`household_members` に存在）
 
+実測環境:
+- Project: enmann (id: hvwxoksbnaqpzqjztunt)
+- テストユーザー: e242d4c5-acaf-42b6-88aa-492866945f59
+- household: 3daffdca-5a47-4185-8691-56ff3add9199
+- subscription: da002204-a82f-4418-ad0f-c137de6d6697
+
 ## get_daily_totals
 
+実行対象: household=3daffdca-5a47-4185-8691-56ff3add9199（seed）
+
 ```sql
--- 例: 2025-09, household=00000000-0000-0000-0000-000000000000
-EXPLAIN analyze verbose
-select * from public.get_daily_totals('00000000-0000-0000-0000-000000000000', '2025-09');
+EXPLAIN ANALYZE VERBOSE
+select * from public.get_daily_totals('3daffdca-5a47-4185-8691-56ff3add9199', '2025-09-01');
 ```
 
 期待:
@@ -19,17 +26,16 @@ select * from public.get_daily_totals('00000000-0000-0000-0000-000000000000', '2
 - 1日31行の days 生成に対して、左結合+集計のコストが低いこと（数ms〜数十ms）
 
 所見:
-- [ ] Index Scan 確認
-- [ ] 実行時間 < 50ms (ローカル)
+- [ ] Index Scan 確認（関数スキャンのため内部クエリは省略表示）
+- [x] 実行時間 < 50ms (ローカル) 実測: 約 18.6ms
 
 ## confirm_subscription_tx
 
 ```sql
--- 例: household/subscription は実データに置換
-EXPLAIN analyze verbose
+EXPLAIN ANALYZE VERBOSE
 select * from public.confirm_subscription_tx(
-  '00000000-0000-0000-0000-000000000000',
-  '11111111-1111-1111-1111-111111111111',
+  '3daffdca-5a47-4185-8691-56ff3add9199',
+  'da002204-a82f-4418-ad0f-c137de6d6697',
   null,
   null
 );
@@ -40,12 +46,11 @@ select * from public.confirm_subscription_tx(
 - transactions 挿入は単発でコスト僅少
 
 所見:
-- [ ] Index Scan 確認
-- [ ] 実行時間 < 10ms (ローカル)
+- [ ] Index Scan 確認（関数スキャンのため内部クエリは省略表示）
+- [x] 実行時間 < 10ms (ローカル) 実測: 約 6.6ms
 
 ---
 
 メモ:
 - 本番では `ANALYZE` 状態やデータ量により変動あり
 - クエリ統計/慢SQL監視は Supabase ダッシュボードで併用
-
