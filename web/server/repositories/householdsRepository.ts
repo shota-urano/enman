@@ -33,5 +33,19 @@ export const householdsRepository = {
 
     return { id: hh.id, name: hh.name }
   },
-}
 
+  async getMyMembership(userId: string): Promise<{ household_id: string; role: 'owner' | 'member' } | null> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('household_members')
+      .select('household_id, role, joined_at')
+      .eq('user_id', userId)
+      .order('joined_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) return null
+    return { household_id: data.household_id as string, role: data.role as 'owner' | 'member' }
+  },
+}
