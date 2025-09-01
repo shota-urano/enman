@@ -59,7 +59,7 @@ describe('POST /api/households/invite', () => {
   it('returns 400 when email has wrong type', async () => {
     const session: Session = { userId: 'u-1', token: 't', householdId: 'h-1', role: 'owner' }
     getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockResolvedValue(undefined as any)
+    assertHouseholdMember.mockResolvedValue(undefined)
     const req = makeReq({ email: 123 })
     const res = await route.POST(req)
     expect(res.status).toBe(400)
@@ -70,7 +70,7 @@ describe('POST /api/households/invite', () => {
   it('generates a token and returns 200', async () => {
     const session: Session = { userId: 'u-1', token: 't', householdId: 'h-1', role: 'owner' }
     getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockResolvedValue(undefined as any)
+    assertHouseholdMember.mockResolvedValue(undefined)
     inviteService.generateToken.mockReturnValue('tok-abc')
     const req = makeReq({ email: 'a@example.com' })
     const res = await route.POST(req)

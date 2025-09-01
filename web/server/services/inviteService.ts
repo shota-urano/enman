@@ -1,4 +1,4 @@
-import { randomBytes, createHmac } from 'crypto'
+import { createHmac } from 'node:crypto'
 import { serverEnv } from '@/server/config/env'
 import { badRequest, systemError } from '@/server/utils/errors'
 
@@ -6,7 +6,7 @@ import { badRequest, systemError } from '@/server/utils/errors'
 // header: { alg: 'HS256', typ: 'INV' }
 // payload: { household_id, inviter, email?, iat, exp }
 
-function base64url(buf: Buffer | string) {
+function base64url(buf: Buffer | string): string {
   const b = Buffer.isBuffer(buf) ? buf : Buffer.from(buf)
   return b
     .toString('base64')
@@ -15,7 +15,7 @@ function base64url(buf: Buffer | string) {
     .replace(/\//g, '_')
 }
 
-function sign(data: string, secret: string) {
+function sign(data: string, secret: string): string {
   return base64url(createHmac('sha256', secret).update(data).digest())
 }
 
@@ -28,7 +28,12 @@ export type InvitePayload = {
 }
 
 export const inviteService = {
-  generateToken(householdId: string, inviterUserId: string, email?: string, ttlSeconds = 60 * 60 * 24) {
+  generateToken(
+    householdId: string,
+    inviterUserId: string,
+    email?: string,
+    ttlSeconds = 60 * 60 * 24,
+  ): string {
     const secret = serverEnv.INVITE_SECRET
     if (!secret) throw systemError('Missing INVITE_SECRET')
 
@@ -56,7 +61,12 @@ export const inviteService = {
     const expectedSig = sign(`${h}.${p}`, secret)
     if (s !== expectedSig) throw badRequest('Invalid token signature')
     const json = Buffer.from(p.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
-    const payload: InvitePayload = JSON.parse(json)
+    let payload: InvitePayload
+    try {
+      payload = JSON.parse(json)
+    } catch {
+      throw badRequest('Invalid token payload')
+    }
     const now = Math.floor(Date.now() / 1000)
     if (payload.exp < now) throw badRequest('Token expired')
     return payload
