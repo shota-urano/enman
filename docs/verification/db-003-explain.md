@@ -26,8 +26,8 @@ select * from public.get_daily_totals('3daffdca-5a47-4185-8691-56ff3add9199', '2
 - 1日31行の days 生成に対して、左結合+集計のコストが低いこと（数ms〜数十ms）
 
 所見:
-- [ ] Index Scan 確認（関数スキャンのため内部クエリは省略表示）
-- [x] 実行時間 < 50ms (ローカル) 実測: 約 18.6ms
+- [~] Index Scan 確認（関数スキャンのため内部クエリは省略表示。代替として月次一覧クエリで idx 利用を下記検証）
+- [x] 実行時間 < 50ms (ローカル) 実測: 約 9.35ms
 
 ## confirm_subscription_tx
 
@@ -54,3 +54,40 @@ select * from public.confirm_subscription_tx(
 メモ:
 - 本番では `ANALYZE` 状態やデータ量により変動あり
 - クエリ統計/慢SQL監視は Supabase ダッシュボードで併用
+
+---
+
+## 補足: 月次一覧クエリ EXPLAIN 実測
+
+対象 household: 3daffdca-5a47-4185-8691-56ff3add9199, 月: 2025-09
+
+1) kind 指定なし（範囲: 当月）
+
+```
+EXPLAIN ANALYZE
+select *
+from public.transactions t
+where t.household_id = '3daffdca-5a47-4185-8691-56ff3add9199'
+  and t.occurred_on >= date_trunc('month', '2025-09-01'::date)
+  and t.occurred_on <  (date_trunc('month', '2025-09-01'::date) + interval '1 month')
+order by t.occurred_on asc, t.created_at asc;
+```
+
+- Plan: Index Scan using `idx_tx_household_date` → Incremental Sort
+- Execution Time: 約 0.80 ms
+
+2) kind = 'expense' 指定
+
+```
+EXPLAIN ANALYZE
+select *
+from public.transactions t
+where t.household_id = '3daffdca-5a47-4185-8691-56ff3add9199'
+  and t.occurred_on >= date_trunc('month', '2025-09-01'::date)
+  and t.occurred_on <  (date_trunc('month', '2025-09-01'::date) + interval '1 month')
+  and t.kind = 'expense'
+order by t.occurred_on asc, t.created_at asc;
+```
+
+- Plan: Index Scan using `idx_tx_kind_month` → Incremental Sort
+- Execution Time: 約 0.13 ms
