@@ -6,7 +6,7 @@ import { categoryUpdateSchema } from '@/server/schemas/category'
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await getSession(req)
@@ -19,9 +19,10 @@ export async function PATCH(
       throw badRequest(message, parsed.error)
     }
 
+    const { id } = await params
     const updated = await categoriesRepository.update(
       session.householdId!,
-      params.id,
+      id,
       parsed.data,
     )
     return NextResponse.json(updated, { status: 200 })

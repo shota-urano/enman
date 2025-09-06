@@ -48,7 +48,7 @@ describe('PATCH /api/categories/:id', () => {
 
     // invalid type
     const req = makeReq({ type: 'invalid' })
-    const res = await route.PATCH(req, { params: { id: 'c-1' } })
+    const res = await route.PATCH(req, { params: Promise.resolve({ id: 'c-1' }) })
     expect(res.status).toBe(400)
     const json = await res.json()
     expect(json.code).toBe('VALIDATION_ERROR')
@@ -58,7 +58,7 @@ describe('PATCH /api/categories/:id', () => {
     getSession.mockRejectedValue(unauthorized())
 
     const req = makeReq({ name: 'Groceries' })
-    const res = await route.PATCH(req, { params: { id: 'c-1' } })
+    const res = await route.PATCH(req, { params: Promise.resolve({ id: 'c-1' }) })
     expect(res.status).toBe(401)
     const json = await res.json()
     expect(json.code).toBe('UNAUTHORIZED')
@@ -70,7 +70,7 @@ describe('PATCH /api/categories/:id', () => {
     assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
 
     const req = makeReq({ name: 'Groceries' })
-    const res = await route.PATCH(req, { params: { id: 'c-1' } })
+    const res = await route.PATCH(req, { params: Promise.resolve({ id: 'c-1' }) })
     expect(res.status).toBe(403)
     const json = await res.json()
     expect(json.code).toBe('FORBIDDEN')
@@ -85,7 +85,7 @@ describe('PATCH /api/categories/:id', () => {
     categoriesRepository.update.mockResolvedValue(cat)
 
     const req = makeReq({ name: 'Groceries', sort_order: 2 }, { 'x-household-id': 'h-1' })
-    const res = await route.PATCH(req, { params: { id: 'c-1' } })
+    const res = await route.PATCH(req, { params: Promise.resolve({ id: 'c-1' }) })
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json).toEqual(cat)
