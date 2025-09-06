@@ -40,4 +40,22 @@ export const categoriesRepository = {
     if (!data) throw new Error('Failed to create category')
     return data as Category
   },
+  async update(
+    householdId: string,
+    id: string,
+    input: Partial<{ name: string; type: Category['type']; sort_order: number }>,
+  ): Promise<Category> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('categories')
+      .update(input)
+      .eq('household_id', householdId)
+      .eq('id', id)
+      .select('id, name, type, sort_order')
+      .single()
+
+    if (error) throw error
+    if (!data) throw new Error('Category not found')
+    return data as Category
+  },
 }
