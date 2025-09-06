@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { assertHouseholdMember, getSession } from '@/server/utils/auth'
-import { normalizeError, toErrorBody } from '@/server/utils/errors'
+import { normalizeError, toErrorBody, badRequest } from '@/server/utils/errors'
 import { categoriesRepository } from '@/server/repositories/categoriesRepository'
+import { categoryCreateSchema } from '@/server/schemas/category'
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,3 +17,22 @@ export async function GET(req: NextRequest) {
   }
 }
 
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getSession(req)
+    await assertHouseholdMember(session)
+
+    const json = await req.json().catch(() => ({}))
+    const parsed = categoryCreateSchema.safeParse(json)
+    if (!parsed.success) {
+      const message = parsed.error.message
+      throw badRequest(message, parsed.error)
+    }
+
+    const created = await categoriesRepository.create(session.householdId!, parsed.data)
+    return NextResponse.json(created, { status: 201 })
+  } catch (e: unknown) {
+    const err = normalizeError(e)
+    return NextResponse.json(toErrorBody(err), { status: err.status })
+  }
+}
