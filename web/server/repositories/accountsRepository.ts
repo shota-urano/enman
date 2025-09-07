@@ -20,5 +20,24 @@ export const accountsRepository = {
     if (error) throw error
     return (data ?? []) as Account[]
   },
-}
+  async create(
+    householdId: string,
+    input: { name: string; type: Account['type']; sort_order: number },
+  ): Promise<Account> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('accounts')
+      .insert({
+        household_id: householdId,
+        name: input.name,
+        type: input.type,
+        sort_order: input.sort_order,
+      })
+      .select('id, name, type, sort_order')
+      .single()
 
+    if (error) throw error
+    if (!data) throw new Error('Failed to create account')
+    return data as Account
+  },
+}
