@@ -41,7 +41,6 @@ describe('GET /api/accounts', () => {
   it('returns 401 when unauthorized', async () => {
     getSession.mockRejectedValue(unauthorized())
     const req = makeReq()
-    // @ts-expect-error -- route handler signature
     const res = await route.GET(req)
     expect(res.status).toBe(401)
   })
@@ -51,7 +50,6 @@ describe('GET /api/accounts', () => {
     getSession.mockResolvedValue(session)
     assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
     const req = makeReq()
-    // @ts-expect-error -- route handler signature
     const res = await route.GET(req)
     expect(res.status).toBe(403)
     const json = await res.json()
@@ -69,7 +67,6 @@ describe('GET /api/accounts', () => {
     accountsRepository.list.mockResolvedValue(list)
 
     const req = makeReq({ 'x-household-id': 'h-1' })
-    // @ts-expect-error -- route handler signature
     const res = await route.GET(req)
     expect(res.status).toBe(200)
     const json = await res.json()
