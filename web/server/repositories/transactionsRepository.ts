@@ -12,6 +12,26 @@ export type Transaction = {
 }
 
 export const transactionsRepository = {
+  async update(
+    householdId: string,
+    id: string,
+    input: import('@/server/schemas/transaction').TxUpdateInput,
+  ): Promise<Transaction> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('transactions')
+      .update(input as Record<string, unknown>)
+      .eq('household_id', householdId)
+      .eq('id', id)
+      .select(
+        'id, kind, occurred_on, amount, category_id, account_id, place, memo',
+      )
+      .single()
+
+    if (error) throw error
+    if (!data) throw new Error('Transaction not found')
+    return data as Transaction
+  },
   async create(
     householdId: string,
     input: import('@/server/schemas/transaction').TxCreateInput,
