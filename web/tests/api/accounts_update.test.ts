@@ -20,16 +20,12 @@ import * as repoModule from '@/server/repositories/accountsRepository'
 import type { Account } from '@/server/repositories/accountsRepository'
 import { unauthorized, forbidden } from '@/server/utils/errors'
 
-function makeReq(method: string, body?: unknown, headers: Record<string, string> = {}): NextRequest {
+function makeReq(body: unknown, headers: Record<string, string> = {}): NextRequest {
   const h = new Headers(headers)
-  const reqInit: any = { method, headers: h }
-  if (body !== undefined) {
-    const json = JSON.stringify(body)
-    reqInit.json = async () => JSON.parse(json)
-  } else {
-    reqInit.json = async () => { throw new Error('no body') }
-  }
-  return reqInit as unknown as NextRequest
+  return {
+    headers: h,
+    json: async () => body,
+  } as unknown as NextRequest
 }
 
 describe('PATCH /api/accounts/:id', () => {
@@ -45,48 +41,58 @@ describe('PATCH /api/accounts/:id', () => {
     vi.restoreAllMocks()
   })
 
+  it('returns 400 when body is invalid', async () => {
+    const session: Session = { userId: 'u-1', token: 't', householdId: 'h-1' }
+    getSession.mockResolvedValue(session)
+    assertHouseholdMember.mockResolvedValue()
+
+    // invalid type
+    const req = makeReq({ type: 'invalid' })
+    const res = await route.PATCH(req, { params: Promise.resolve({ id: 'a-1' }) })
+    expect(res.status).toBe(400)
+    const json = await res.json()
+    expect(json.code).toBe('VALIDATION_ERROR')
+  })
+
   it('returns 401 when unauthorized', async () => {
     getSession.mockRejectedValue(unauthorized())
-    const req = makeReq('PATCH')
-    const res = await route.PATCH(req, { params: { id: 'a-1' } })
+
+    const req = makeReq({ name: 'Wallet' })
+    const res = await route.PATCH(req, { params: Promise.resolve({ id: 'a-1' }) })
     expect(res.status).toBe(401)
+    const json = await res.json()
+    expect(json.code).toBe('UNAUTHORIZED')
   })
 
   it('returns 403 when household scope missing', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
     assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
-    const req = makeReq('PATCH', { name: 'New Name' })
-    const res = await route.PATCH(req, { params: { id: 'a-1' } })
+
+    const req = makeReq({ name: 'Wallet' })
+    const res = await route.PATCH(req, { params: Promise.resolve({ id: 'a-1' }) })
     expect(res.status).toBe(403)
     const json = await res.json()
     expect(json.code).toBe('FORBIDDEN')
   })
 
-  it('returns 400 when body invalid', async () => {
-    const session: Session = { userId: 'u-1', token: 't', householdId: 'h-1' }
-    getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockResolvedValue()
-    // invalid type value
-    const req = makeReq('PATCH', { type: 'invalid' })
-    const res = await route.PATCH(req, { params: { id: 'a-1' } })
-    expect(res.status).toBe(400)
-  })
-
-  it('returns 200 with updated account', async () => {
+  it('updates account and returns 200', async () => {
     const session: Session = { userId: 'u-1', token: 't', householdId: 'h-1' }
     getSession.mockResolvedValue(session)
     assertHouseholdMember.mockResolvedValue()
 
-    const updated: Account = { id: 'a-1', name: 'Wallet', type: 'cash', sort_order: 3 }
-    accountsRepository.update.mockResolvedValue(updated)
+    const acc: Account = { id: 'a-1', name: 'Wallet', type: 'cash', sort_order: 2 }
+    accountsRepository.update.mockResolvedValue(acc)
 
-    const req = makeReq('PATCH', { name: 'Wallet', sort_order: 3 }, { 'x-household-id': 'h-1' })
-    const res = await route.PATCH(req, { params: { id: 'a-1' } })
+    const req = makeReq({ name: 'Wallet', sort_order: 2 }, { 'x-household-id': 'h-1' })
+    const res = await route.PATCH(req, { params: Promise.resolve({ id: 'a-1' }) })
     expect(res.status).toBe(200)
     const json = await res.json()
-    expect(json).toEqual(updated)
-    expect(accountsRepository.update).toHaveBeenCalledWith('h-1', 'a-1', { name: 'Wallet', sort_order: 3 })
+    expect(json).toEqual(acc)
+    expect(accountsRepository.update).toHaveBeenCalledWith('h-1', 'a-1', {
+      name: 'Wallet',
+      sort_order: 2,
+    })
   })
 })
 
