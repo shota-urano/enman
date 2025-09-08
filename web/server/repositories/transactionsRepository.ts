@@ -12,6 +12,22 @@ export type Transaction = {
 }
 
 export const transactionsRepository = {
+  async remove(
+    householdId: string,
+    id: string,
+  ): Promise<void> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('household_id', householdId)
+      .eq('id', id)
+      .select('id')
+      .single()
+
+    if (error) throw error
+    if (!data) throw new Error('Transaction not found')
+  },
   async update(
     householdId: string,
     id: string,
