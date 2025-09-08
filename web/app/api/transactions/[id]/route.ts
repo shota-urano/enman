@@ -32,3 +32,19 @@ export async function PATCH(
   }
 }
 
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await getSession(req)
+    await assertHouseholdMember(session)
+
+    const { id } = await params
+    await transactionsRepository.remove(session.householdId!, id)
+    return new NextResponse(null, { status: 204 })
+  } catch (e: unknown) {
+    const err = normalizeError(e)
+    return NextResponse.json(toErrorBody(err), { status: err.status })
+  }
+}
