@@ -12,6 +12,30 @@ export type Transaction = {
 }
 
 export const transactionsRepository = {
+  async create(
+    householdId: string,
+    input: import('@/server/schemas/transaction').TxCreateInput,
+  ): Promise<Transaction> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert({
+        household_id: householdId,
+        kind: input.kind,
+        occurred_on: input.occurred_on,
+        amount: input.amount,
+        category_id: input.category_id,
+        account_id: input.account_id,
+        place: input.place ?? null,
+        memo: input.memo ?? null,
+      })
+      .select('id, kind, occurred_on, amount, category_id, account_id, place, memo')
+      .single()
+
+    if (error) throw error
+    if (!data) throw new Error('Failed to create transaction')
+    return data as Transaction
+  },
   async listByMonth(
     householdId: string,
     month: string, // YYYY-MM
