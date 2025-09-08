@@ -20,5 +20,22 @@ export const accountsRepository = {
     if (error) throw error
     return (data ?? []) as Account[]
   },
-}
+  async update(
+    householdId: string,
+    id: string,
+    input: Partial<{ name: string; type: Account['type']; sort_order: number }>,
+  ): Promise<Account> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('accounts')
+      .update(input)
+      .eq('household_id', householdId)
+      .eq('id', id)
+      .select('id, name, type, sort_order')
+      .single()
 
+    if (error) throw error
+    if (!data) throw new Error('Account not found')
+    return data as Account
+  },
+}
