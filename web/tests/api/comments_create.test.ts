@@ -8,15 +8,15 @@ vi.mock('@/server/utils/auth', () => ({
   assertHouseholdMember: vi.fn(),
 }))
 
-vi.mock('@/server/repositories/commentsRepository', () => ({
-  commentsRepository: {
+vi.mock('@/server/services/commentService', () => ({
+  commentService: {
     create: vi.fn(),
   },
 }))
 
 import * as authModule from '@/server/utils/auth'
 import type { Session } from '@/server/utils/auth'
-import * as repoModule from '@/server/repositories/commentsRepository'
+import * as serviceModule from '@/server/services/commentService'
 import type { Comment } from '@/server/repositories/commentsRepository'
 import { unauthorized, forbidden } from '@/server/utils/errors'
 
@@ -37,7 +37,7 @@ function makeReq(
 describe('POST /api/comments', () => {
   const getSession = vi.mocked(authModule.getSession)
   const assertHouseholdMember = vi.mocked(authModule.assertHouseholdMember)
-  const commentsRepository = vi.mocked(repoModule.commentsRepository)
+  const commentService = vi.mocked(serviceModule.commentService)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -87,7 +87,7 @@ describe('POST /api/comments', () => {
       created_by: 'u-1',
       created_at: '2025-09-02T12:00:00Z',
     }
-    commentsRepository.create.mockResolvedValue(created)
+    commentService.create.mockResolvedValue(created)
 
     const req = makeReq(
       'http://test.local/api/comments',
@@ -98,10 +98,13 @@ describe('POST /api/comments', () => {
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json).toEqual(created)
-    expect(commentsRepository.create).toHaveBeenCalledWith('h-1', 'u-1', {
-      transaction_id: 'tx-1',
-      body: 'テストコメント',
-    })
+    expect(commentService.create).toHaveBeenCalledWith(
+      {
+        transaction_id: 'tx-1',
+        body: 'テストコメント',
+      },
+      { userId: 'u-1', token: 't', householdId: 'h-1' },
+    )
   })
 })
 

@@ -3,6 +3,7 @@ import { assertHouseholdMember, getSession } from '@/server/utils/auth'
 import { normalizeError, toErrorBody, badRequest } from '@/server/utils/errors'
 import { commentsRepository } from '@/server/repositories/commentsRepository'
 import { commentCreateSchema } from '@/server/schemas/comment'
+import { commentService } from '@/server/services/commentService'
 
 export async function GET(req: NextRequest) {
   try {
@@ -39,11 +40,7 @@ export async function POST(req: NextRequest) {
       throw badRequest(message, parsed.error)
     }
 
-    const created = await commentsRepository.create(
-      session.householdId!,
-      session.userId,
-      parsed.data,
-    )
+    const created = await commentService.create(parsed.data, session)
     return NextResponse.json(created, { status: 201 })
   } catch (e: unknown) {
     const err = normalizeError(e)
