@@ -7,3 +7,4 @@ export const commentCreateSchema = z.object({
 })
 
 export type CommentCreateInput = z.infer<typeof commentCreateSchema>
+

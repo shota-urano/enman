@@ -20,10 +20,17 @@ import * as repoModule from '@/server/repositories/commentsRepository'
 import type { Comment } from '@/server/repositories/commentsRepository'
 import { unauthorized, forbidden } from '@/server/utils/errors'
 
-function makeReq(url: string, body?: unknown, headers: Record<string, string> = {}): NextRequest {
+function makeReq(
+  url: string,
+  body?: unknown,
+  headers: Record<string, string> = {},
+): NextRequest {
   const h = new Headers(headers)
-  const req: any = { headers: h, url }
-  req.json = async () => body
+  const req = {
+    headers: h,
+    url,
+    json: async () => body,
+  } as Partial<NextRequest> & { json: () => Promise<unknown> }
   return req as unknown as NextRequest
 }
 
