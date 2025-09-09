@@ -23,6 +23,19 @@ export const subscriptionsRepository = {
     if (error) throw error
     return (data ?? []) as Subscription[]
   },
+  async remove(householdId: string, id: string): Promise<void> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .delete()
+      .eq('household_id', householdId)
+      .eq('id', id)
+      .select('id')
+      .single()
+
+    if (error) throw error
+    if (!data) throw new Error('Subscription not found')
+  },
   async create(
     householdId: string,
     input: {
