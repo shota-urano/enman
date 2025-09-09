@@ -24,5 +24,26 @@ export const commentsRepository = {
     if (error) throw error
     return (data ?? []) as Comment[]
   },
-}
+  async create(
+    householdId: string,
+    userId: string,
+    input: import('@/server/schemas/comment').CommentCreateInput,
+  ): Promise<Comment> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('comments')
+      .insert({
+        household_id: householdId,
+        transaction_id: input.transaction_id,
+        body: input.body,
+        created_by: userId,
+        updated_by: userId,
+      })
+      .select('id, transaction_id, body, created_by, created_at')
+      .single()
 
+    if (error) throw error
+    if (!data) throw new Error('Failed to create comment')
+    return data as Comment
+  },
+}
