@@ -137,7 +137,6 @@ describe('POST /api/transactions', () => {
     const parsed = txCreateSchema.safeParse(input)
     if (!parsed.success) {
       // Debug output for schema issues
-      // eslint-disable-next-line no-console
       console.log(parsed.error.issues)
     }
     expect(parsed.success).toBe(true)

@@ -21,7 +21,7 @@ export const commentService = {
         transactionId: created.transaction_id,
         commentId: created.id,
       })
-    } catch (_e) {
+    } catch {
       // Intentionally swallow notification errors to not fail main flow
     }
 
