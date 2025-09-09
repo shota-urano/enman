@@ -30,10 +30,12 @@ export const reactionService = {
     try {
       const created = await reactionsRepository.create(householdId, userId, input)
       return created
-    } catch (e: any) {
+    } catch (e: unknown) {
       // Surface unique constraint as 409 CONFLICT (for race conditions)
-      const code = e?.code || e?.details?.code
-      const message: string = e?.message || 'Unique constraint violated'
+      type PgError = { code?: string; message?: string; details?: { code?: string } }
+      const err = e as PgError
+      const code = err?.code || err?.details?.code
+      const message = err?.message || 'Unique constraint violated'
       if (code === '23505' || /duplicate key/i.test(message)) {
         throw conflict('Reaction already exists', e)
       }

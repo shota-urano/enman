@@ -41,6 +41,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 - Client env: configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` if the browser needs to call Supabase directly.
 - MCP gateway (optional): set `MCP_ENDPOINT` and `MCP_AUTH_TOKEN` if you route connectivity via an MCP service.
 - DB schema: managed in `supabase/migrations/*` (see `supabase/README.md`).
+ - Env template: copy `web/.env.example` to `.env.local` and fill values.
 
 ### Health Checks
 

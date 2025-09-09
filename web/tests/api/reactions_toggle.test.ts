@@ -17,6 +17,7 @@ vi.mock('@/server/services/reactionService', () => ({
 import * as authModule from '@/server/utils/auth'
 import type { Session } from '@/server/utils/auth'
 import * as serviceModule from '@/server/services/reactionService'
+import type { Reaction } from '@/server/repositories/reactionsRepository'
 import { unauthorized, forbidden, conflict } from '@/server/utils/errors'
 
 function makeReq(body?: unknown, headers: Record<string, string> = {}): NextRequest {
@@ -75,14 +76,14 @@ describe('POST /api/reactions/toggle', () => {
     const session: Session = { userId: 'u-1', token: 't', householdId: 'h-1' }
     getSession.mockResolvedValue(session)
     assertHouseholdMember.mockResolvedValue()
-    const reaction = {
+    const reaction: Reaction = {
       id: 're-1',
       transaction_id: 'tx-1',
       emoji: '👍',
       user_id: 'u-1',
       created_at: '2025-09-02T12:00:00Z',
     }
-    reactionService.toggle.mockResolvedValue(reaction as any)
+    reactionService.toggle.mockResolvedValue(reaction as unknown as Reaction)
 
     const req = makeReq({ transaction_id: 'tx-1', emoji: '👍' }, { 'x-household-id': 'h-1' })
     const res = await route.POST(req)
@@ -99,7 +100,7 @@ describe('POST /api/reactions/toggle', () => {
     const session: Session = { userId: 'u-1', token: 't', householdId: 'h-1' }
     getSession.mockResolvedValue(session)
     assertHouseholdMember.mockResolvedValue()
-    reactionService.toggle.mockResolvedValue(null as any)
+    reactionService.toggle.mockResolvedValue(null)
 
     const req = makeReq({ transaction_id: 'tx-1', emoji: '👍' }, { 'x-household-id': 'h-1' })
     const res = await route.POST(req)
