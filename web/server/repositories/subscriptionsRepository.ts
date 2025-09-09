@@ -53,5 +53,29 @@ export const subscriptionsRepository = {
     if (!data) throw new Error('Failed to create subscription')
     return data as Subscription
   },
-}
+  async update(
+    householdId: string,
+    id: string,
+    input: Partial<{
+      name: string
+      expected_amount: number
+      category_id: string
+      account_id: string
+      billing_day: number
+      note: string | null
+    }>,
+  ): Promise<Subscription> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .update(input)
+      .eq('household_id', householdId)
+      .eq('id', id)
+      .select('id, name, expected_amount, category_id, account_id, billing_day, note')
+      .single()
 
+    if (error) throw error
+    if (!data) throw new Error('Subscription not found')
+    return data as Subscription
+  },
+}

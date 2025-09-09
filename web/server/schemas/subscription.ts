@@ -11,3 +11,5 @@ export const subscriptionCreateSchema = z.object({
 
 export type SubscriptionCreateInput = z.infer<typeof subscriptionCreateSchema>
 
+export const subscriptionUpdateSchema = subscriptionCreateSchema.partial()
+export type SubscriptionUpdateInput = z.infer<typeof subscriptionUpdateSchema>
