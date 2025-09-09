@@ -34,3 +34,20 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Supabase + MCP Setup
+
+- Server env: configure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE`.
+- Client env: configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` if the browser needs to call Supabase directly.
+- MCP gateway (optional): set `MCP_ENDPOINT` and `MCP_AUTH_TOKEN` if you route connectivity via an MCP service.
+- DB schema: managed in `supabase/migrations/*` (see `supabase/README.md`).
+
+### Health Checks
+
+- `GET /api/health`: shows basic status and MCP reachability (if configured).
+- `GET /api/health/db`: verifies Supabase connectivity by issuing a lightweight head-only query.
+
+### Notes
+
+- Repositories on the server use the Supabase Admin client (`SUPABASE_SERVICE_ROLE`) to access the enmann DB schema.
+- If you require MCP-only access for DB operations, provide MCP endpoints for the needed CRUD/RPC and we can switch the repositories to call MCP instead of the SDK.

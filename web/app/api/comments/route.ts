@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { assertHouseholdMember, getSession } from '@/server/utils/auth'
 import { normalizeError, toErrorBody, badRequest } from '@/server/utils/errors'
 import { commentsRepository } from '@/server/repositories/commentsRepository'
+import { commentCreateSchema } from '@/server/schemas/comment'
 
 export async function GET(req: NextRequest) {
   try {
@@ -26,3 +27,26 @@ export async function GET(req: NextRequest) {
   }
 }
 
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getSession(req)
+    await assertHouseholdMember(session)
+
+    const json = await req.json().catch(() => ({}))
+    const parsed = commentCreateSchema.safeParse(json)
+    if (!parsed.success) {
+      const message = parsed.error.message
+      throw badRequest(message, parsed.error)
+    }
+
+    const created = await commentsRepository.create(
+      session.householdId!,
+      session.userId,
+      parsed.data,
+    )
+    return NextResponse.json(created, { status: 201 })
+  } catch (e: unknown) {
+    const err = normalizeError(e)
+    return NextResponse.json(toErrorBody(err), { status: err.status })
+  }
+}
