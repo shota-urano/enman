@@ -10,6 +10,21 @@ export type Reaction = {
 }
 
 export const reactionsRepository = {
+  async listByTransaction(
+    householdId: string,
+    transactionId: string,
+  ): Promise<Reaction[]> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('reactions')
+      .select('id, transaction_id, emoji, user_id, created_at')
+      .eq('household_id', householdId)
+      .eq('transaction_id', transactionId)
+      .order('created_at', { ascending: true })
+
+    if (error) throw error
+    return (data ?? []) as Reaction[]
+  },
   async findByUserAndTransaction(
     householdId: string,
     transactionId: string,
