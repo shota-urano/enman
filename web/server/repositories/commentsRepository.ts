@@ -46,4 +46,22 @@ export const commentsRepository = {
     if (!data) throw new Error('Failed to create comment')
     return data as Comment
   },
+  async remove(
+    householdId: string,
+    id: string,
+    userId: string,
+  ): Promise<void> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('comments')
+      .delete()
+      .eq('household_id', householdId)
+      .eq('id', id)
+      .eq('created_by', userId)
+      .select('id')
+      .single()
+
+    if (error) throw error
+    if (!data) throw new Error('Comment not found or not owned by user')
+  },
 }
