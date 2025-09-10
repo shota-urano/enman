@@ -12,6 +12,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Interactive: Story = {
+  args: { children: null },
   render: () => (
     <Dialog>
       <DialogTrigger asChild>

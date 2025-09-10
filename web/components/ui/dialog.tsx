@@ -40,15 +40,15 @@ export function Dialog({ open: openProp, onOpenChange, children }: DialogProps) 
   )
 }
 
-export function DialogTrigger({ asChild = false, children }: { asChild?: boolean; children: React.ReactElement }) {
+type ClickableChild = { onClick?: (e: React.MouseEvent) => void }
+export function DialogTrigger({ asChild = false, children }: { asChild?: boolean; children: React.ReactElement<ClickableChild> }) {
   const { setOpen } = useDialog()
   if (asChild) {
-    return React.cloneElement(children, {
-      onClick: (e: React.MouseEvent) => {
-        children.props.onClick?.(e)
-        setOpen(true)
-      },
-    })
+    const handleClick: React.MouseEventHandler = (e) => {
+      children.props?.onClick?.(e)
+      setOpen(true)
+    }
+    return React.cloneElement(children, { onClick: handleClick })
   }
   return (
     <button className="btn btn-outline" onClick={() => setOpen(true)}>

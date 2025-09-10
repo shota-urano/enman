@@ -38,15 +38,15 @@ export function Sheet({ open: openProp, onOpenChange, children }: SheetProps) {
   return <SheetContext.Provider value={{ open, setOpen }}>{children}</SheetContext.Provider>
 }
 
-export function SheetTrigger({ asChild = false, children }: { asChild?: boolean; children: React.ReactElement }) {
+type ClickableChild = { onClick?: (e: React.MouseEvent) => void }
+export function SheetTrigger({ asChild = false, children }: { asChild?: boolean; children: React.ReactElement<ClickableChild> }) {
   const { setOpen } = useSheet()
   if (asChild) {
-    return React.cloneElement(children, {
-      onClick: (e: React.MouseEvent) => {
-        children.props.onClick?.(e)
-        setOpen(true)
-      },
-    })
+    const handleClick: React.MouseEventHandler = (e) => {
+      children.props?.onClick?.(e)
+      setOpen(true)
+    }
+    return React.cloneElement(children, { onClick: handleClick })
   }
   return (
     <button className="btn btn-outline" onClick={() => setOpen(true)}>
