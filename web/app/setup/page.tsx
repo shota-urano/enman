@@ -5,18 +5,20 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
 
-async function postJson(path: string, body: any) {
+type Json = Record<string, unknown>
+
+async function postJson<T = unknown>(path: string, body: Json): Promise<T> {
   const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   })
-  const json = await res.json().catch(() => ({}))
+  const json = (await res.json().catch(() => ({}))) as unknown
   if (!res.ok) {
-    const msg = json?.message || `Request failed: ${res.status}`
+    const msg = (json as { message?: string })?.message || `Request failed: ${res.status}`
     throw new Error(msg)
   }
-  return json
+  return json as T
 }
 
 export default function SetupPage() {
@@ -34,8 +36,9 @@ export default function SetupPage() {
       await postJson("/api/households", { name })
       show("世帯を作成しました", "success")
       router.replace("/")
-    } catch (err: any) {
-      show(err?.message ?? "世帯作成に失敗しました", "error")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "世帯作成に失敗しました"
+      show(message, "error")
     } finally {
       setLoadingCreate(false)
     }
@@ -48,8 +51,9 @@ export default function SetupPage() {
       await postJson("/api/households/join", { token })
       show("世帯に参加しました", "success")
       router.replace("/")
-    } catch (err: any) {
-      show(err?.message ?? "参加に失敗しました", "error")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "参加に失敗しました"
+      show(message, "error")
     } finally {
       setLoadingJoin(false)
     }

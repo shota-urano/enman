@@ -27,8 +27,9 @@ export default function AuthPage() {
       if (error) throw error
       show(mode === "signin" ? "サインイン成功" : "サインアップ成功", "success")
       router.replace("/setup")
-    } catch (err: any) {
-      show(err?.message ?? "認証エラーが発生しました", "error")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "認証エラーが発生しました"
+      show(message, "error")
     } finally {
       setLoading(false)
     }
