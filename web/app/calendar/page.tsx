@@ -178,8 +178,9 @@ export default function CalendarPage() {
       const created = (await res.json()) as CommentItem;
       setCommentsMap((m) => ({ ...m, [txId]: [...(m[txId] ?? []), created] }));
       setCommentInputs((ci) => ({ ...ci, [txId]: '' }));
-    } catch (e: any) {
-      alert(typeof e?.message === 'string' ? e.message : 'コメント追加に失敗しました');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'コメント追加に失敗しました';
+      alert(msg);
     }
   }
 
@@ -188,8 +189,9 @@ export default function CalendarPage() {
       const res = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
       if (!res.ok && res.status !== 204) throw await res.json();
       setCommentsMap((m) => ({ ...m, [txId]: (m[txId] ?? []).filter((c) => c.id !== commentId) }));
-    } catch (e: any) {
-      alert(typeof e?.message === 'string' ? e.message : 'コメント削除に失敗しました');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'コメント削除に失敗しました';
+      alert(msg);
     }
   }
 
@@ -213,8 +215,9 @@ export default function CalendarPage() {
         const rJson = (await listRes.json()) as ReactionItem[];
         setReactionsMap((m) => ({ ...m, [txId]: rJson }));
       }
-    } catch (e: any) {
-      alert(typeof e?.message === 'string' ? e.message : 'リアクション更新に失敗しました');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'リアクション更新に失敗しました';
+      alert(msg);
     }
   }
 
