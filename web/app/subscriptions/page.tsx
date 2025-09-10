@@ -64,8 +64,9 @@ export default function SubscriptionsPage() {
         setCategories(cats)
         setAccounts(accts)
         setList(subs)
-      } catch (e: any) {
-        setError(e?.message ?? "unknown error")
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : String(e)
+        setError(msg)
       } finally {
         setLoading(false)
       }
@@ -110,8 +111,9 @@ export default function SubscriptionsPage() {
           if (!res.ok) throw new Error((await res.text()) || "Failed to create")
           resetCreate()
           await reload()
-        } catch (e: any) {
-          setError(e?.message ?? "failed to create")
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e)
+          setError(msg || "failed to create")
         }
       })()
     })
@@ -126,8 +128,9 @@ export default function SubscriptionsPage() {
           const res = await fetch(`/api/subscriptions/${id}`, { method: "DELETE" })
           if (!res.ok) throw new Error((await res.text()) || "Failed to delete")
           await reload()
-        } catch (e: any) {
-          setError(e?.message ?? "failed to delete")
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e)
+          setError(msg || "failed to delete")
         }
       })()
     })
@@ -153,8 +156,9 @@ export default function SubscriptionsPage() {
           if (!res.ok) throw new Error((await res.text()) || "Failed to update")
           setEdit(null)
           await reload()
-        } catch (e: any) {
-          setError(e?.message ?? "failed to update")
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e)
+          setError(msg || "failed to update")
         }
       })()
     })
@@ -172,8 +176,9 @@ export default function SubscriptionsPage() {
           })
           if (!res.ok) throw new Error((await res.text()) || "Failed to confirm")
           setConfirmDialog(null)
-        } catch (e: any) {
-          setError(e?.message ?? "failed to confirm")
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e)
+          setError(msg || "failed to confirm")
         }
       })()
     })
