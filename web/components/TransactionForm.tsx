@@ -77,7 +77,7 @@ export default function TransactionForm() {
           const a = (await aRes.json()) as Account[]
           setAccounts(a)
         }
-      } catch (e) {
+      } catch {
         // ignore; error surfaced on submit if needed
       }
     }
@@ -138,8 +138,13 @@ export default function TransactionForm() {
         }),
       })
       if (!res.ok) {
-        const j = await res.json().catch(() => ({} as any))
-        throw new Error(j?.message || '登録に失敗しました')
+        const j: unknown = await res.json().catch(() => null)
+        let msg: string | undefined
+        if (j && typeof j === 'object') {
+          const maybe = j as { message?: unknown }
+          if (typeof maybe.message === 'string') msg = maybe.message
+        }
+        throw new Error(msg || '登録に失敗しました')
       }
       // Success
       setOkMsg('取引を登録しました')
@@ -148,8 +153,9 @@ export default function TransactionForm() {
       try {
         window.localStorage.setItem(DRAFT_KEY, JSON.stringify(next))
       } catch {}
-    } catch (e: any) {
-      setError(e?.message || '登録に失敗しました')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : '登録に失敗しました'
+      setError(msg)
     } finally {
       setSubmitting(false)
     }
