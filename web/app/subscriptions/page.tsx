@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { Suspense, useEffect, useMemo, useState, useTransition } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +21,14 @@ type Subscription = {
 }
 
 export default function SubscriptionsPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <SubscriptionsContent />
+    </Suspense>
+  )
+}
+
+function SubscriptionsContent() {
   const [loading, setLoading] = useState(true)
   const [pending, startTransition] = useTransition()
   const [categories, setCategories] = useState<Category[]>([])
