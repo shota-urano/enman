@@ -41,14 +41,16 @@ export const subscriptionsRepository = {
     if (subErr) throw subErr
     if (!sub) throw new Error('Subscription not found')
 
-    const amount = options.amount ?? (sub as any).expected_amount
+    type SubRow = { id: string; expected_amount: number; billing_day: number }
+    const subRow = sub as unknown as SubRow
+    const amount = options.amount ?? subRow.expected_amount
 
     // Compute occurred_on = current month with billing_day (clamped to last day)
     const occurred_on = options.occurred_on ?? (() => {
       const now = new Date()
       const year = now.getUTCFullYear()
       const month0 = now.getUTCMonth() // 0-based
-      const billingDay: number = (sub as any).billing_day
+      const billingDay: number = subRow.billing_day
       // Last day of current month in UTC
       const lastDay = new Date(Date.UTC(year, month0 + 1, 0)).getUTCDate()
       const day = Math.min(Math.max(billingDay, 1), lastDay)
@@ -69,9 +71,10 @@ export const subscriptionsRepository = {
     )
     if (rpcErr) throw rpcErr
 
+    type RpcId = { id: string }
     const createdId: string | undefined = Array.isArray(rpcData)
-      ? (rpcData[0] as any)?.id
-      : (rpcData as any)?.id
+      ? (rpcData[0] as unknown as RpcId | undefined)?.id
+      : (rpcData as unknown as RpcId | null)?.id
     if (!createdId) throw new Error('Failed to confirm subscription')
 
     // Fetch created transaction to return full object

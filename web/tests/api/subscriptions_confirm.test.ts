@@ -17,6 +17,7 @@ vi.mock('@/server/repositories/subscriptionsRepository', () => ({
 import * as authModule from '@/server/utils/auth'
 import type { Session } from '@/server/utils/auth'
 import * as repoModule from '@/server/repositories/subscriptionsRepository'
+import type { Transaction } from '@/server/repositories/transactionsRepository'
 import { unauthorized, forbidden } from '@/server/utils/errors'
 
 function makeReq(body?: unknown, headers: Record<string, string> = {}): NextRequest {
@@ -64,7 +65,7 @@ describe('POST /api/subscriptions/:id/confirm', () => {
     const session: Session = { userId: 'u-1', token: 't', householdId: 'h-1' }
     getSession.mockResolvedValue(session)
     assertHouseholdMember.mockResolvedValue()
-    const tx = {
+    const tx: Transaction = {
       id: 't-1',
       kind: 'expense',
       occurred_on: '2025-09-15',
@@ -74,7 +75,7 @@ describe('POST /api/subscriptions/:id/confirm', () => {
       place: null,
       memo: 'Netflix',
     }
-    subscriptionsRepository.confirm.mockResolvedValue(tx as any)
+    subscriptionsRepository.confirm.mockResolvedValue(tx)
 
     const req = makeReq({ amount: 1500 }, { 'x-household-id': 'h-1' })
     const res = await route.POST(req, { params: Promise.resolve({ id: 's-1' }) })
