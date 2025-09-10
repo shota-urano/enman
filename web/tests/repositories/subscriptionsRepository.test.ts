@@ -10,12 +10,7 @@ vi.mock('@/server/clients/supabase', () => ({
 type QueryResult<T> = { data: T; error: null } | { data: null; error: Error }
 const ok = <T,>(data: T): QueryResult<T> => ({ data, error: null } as QueryResult<T>)
 
-interface SelectChain<T> {
-  select: (s: string) => SelectChain<T>
-  eq: (c: string, v: unknown) => SelectChain<T>
-  order?: (c: string, o: { ascending: boolean }) => SelectChain<T> | Promise<QueryResult<T[]>>
-  single?: () => Promise<QueryResult<T>>
-}
+// Removed unused SelectChain to satisfy no-unused-vars
 
 describe('subscriptionsRepository', () => {
 

@@ -24,17 +24,17 @@ export type DialogProps = {
 export function Dialog({ open: openProp, onOpenChange, children }: DialogProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false)
   const open = openProp ?? uncontrolledOpen
-  const setOpen = (v: boolean) => {
+  const setOpen = React.useCallback((v: boolean) => {
     if (onOpenChange) onOpenChange(v)
     else setUncontrolledOpen(v)
-  }
+  }, [onOpenChange])
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false)
     }
     if (open) document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
-  }, [open])
+  }, [open, setOpen])
   return (
     <DialogContext.Provider value={{ open, setOpen }}>{children}</DialogContext.Provider>
   )
