@@ -15,14 +15,19 @@ function ok<T>(data: T): QueryResult<T> {
   return { data, error: null } as QueryResult<T>
 }
 
-interface SelectChain<T> {
-  select: (s: string) => SelectChain<T>
-  eq: (c: string, v: unknown) => SelectChain<T>
-  gte?: (c: string, v: unknown) => SelectChain<T>
-  lt?: (c: string, v: unknown) => SelectChain<T>
-  order?: (c: string, o: { ascending: boolean }) => SelectChain<T>
-  single?: () => Promise<QueryResult<T>>
+interface QueryChain<T> {
+  select: (s: string) => QueryChain<T>
+  eq: (c: string, v: unknown) => QueryChain<T>
+  gte?: (c: string, v: unknown) => QueryChain<T>
+  lt?: (c: string, v: unknown) => QueryChain<T>
+  order?: (c: string, o: { ascending: boolean }) => QueryChain<T>
   then?: (resolve: (r: QueryResult<T[]>) => unknown) => unknown
+}
+
+interface InsertChain<T> {
+  insert: (row: unknown) => InsertChain<T>
+  select: (s: string) => InsertChain<T>
+  single: () => Promise<QueryResult<T>>
 }
 
 describe('transactionsRepository', () => {
@@ -45,7 +50,7 @@ describe('transactionsRepository', () => {
       },
     ]
 
-    const chain: SelectChain<Transaction> = {
+    const chain: QueryChain<Transaction> = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       gte: vi.fn().mockReturnThis(),
@@ -88,7 +93,7 @@ describe('transactionsRepository', () => {
       memo: 'hello',
     }
 
-    const chain: SelectChain<Transaction> = {
+    const chain: InsertChain<Transaction> = {
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue(ok(created)),

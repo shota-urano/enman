@@ -15,8 +15,12 @@ interface SelectChain<T> {
   select: (s: string) => SelectChain<T>
   eq: (c: string, v: unknown) => SelectChain<T>
   order?: (c: string, o: { ascending: boolean }) => Promise<QueryResult<T[]>>
-  insert?: (row: unknown) => SelectChain<T>
-  single?: () => Promise<QueryResult<T>>
+}
+
+interface InsertChain<T> {
+  insert: (row: unknown) => InsertChain<T>
+  select: (s: string) => InsertChain<T>
+  single: () => Promise<QueryResult<T>>
 }
 
 describe('commentsRepository', () => {
@@ -61,7 +65,7 @@ describe('commentsRepository', () => {
       created_by: 'u1',
       created_at: '2025-09-10T00:00:00Z',
     }
-    const chain: SelectChain<Comment> = {
+    const chain: InsertChain<Comment> = {
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue(ok(created)),
