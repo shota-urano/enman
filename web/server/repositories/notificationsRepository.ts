@@ -32,5 +32,24 @@ export const notificationsRepository = {
     if (error) throw error
     return (data ?? []) as Notification[]
   },
+  async markRead(
+    householdId: string,
+    userId: string,
+    id: string,
+  ): Promise<Notification> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', id)
+      .eq('household_id', householdId)
+      .eq('user_id', userId)
+      .select('id, type, payload, read, created_at')
+      .single()
+
+    if (error) throw error
+    if (!data) throw new Error('Failed to mark notification as read')
+    return data as Notification
+  },
 }
 
