@@ -1,22 +1,13 @@
-# Supabase CLI base config (ports and service settings)
-# Generated as a placeholder. The CLI will update as needed.
-
-project_id = "local-dev"
-
-[api]
-port = 54321
-schemas = ["public"]
+project_id = "<your-project-ref>"
+# For local dev, Supabase CLI fills connection details.
+# For remote operations, set `project_id` to your Supabase project ref (e.g., abcdefghijklmnox).
 
 [db]
-port = 54322
-major_version = 15
+# Optional: configure shadow DB or overrides for migrations if needed
 
 [studio]
 port = 54323
 
-[inbucket]
-port = 54324
-
-[edge_runtime]
-port = 54326
+[api]
+port = 54321
 
