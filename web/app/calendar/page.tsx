@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 
 type DailyTotalsItem = {
@@ -18,6 +19,22 @@ type TxItem = {
   type: "income" | "expense";
   category_name?: string;
   memo?: string;
+};
+
+type CommentItem = {
+  id: string;
+  transaction_id: string;
+  body: string;
+  created_by: string;
+  created_at: string;
+};
+
+type ReactionItem = {
+  id: string;
+  transaction_id: string;
+  emoji: string;
+  user_id: string;
+  created_at: string;
 };
 
 function formatMonthKey(d: Date) {
@@ -61,6 +78,9 @@ export default function CalendarPage() {
   const [txLoading, setTxLoading] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
   const [txList, setTxList] = useState<TxItem[] | null>(null);
+  const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
+  const [reactionsMap, setReactionsMap] = useState<Record<string, ReactionItem[]>>({});
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
   const monthKey = useMemo(() => formatMonthKey(currentMonth), [currentMonth]);
 
@@ -110,17 +130,92 @@ export default function CalendarPage() {
     setTxLoading(true);
     setTxError(null);
     setTxList(null);
+    setCommentsMap({});
+    setReactionsMap({});
     fetch(`/api/transactions?date=${dateStr}`)
       .then(async (r) => {
         if (!r.ok) throw await r.json();
         return r.json();
       })
-      .then((json) => setTxList(json as TxItem[]))
+      .then(async (json) => {
+        const list = json as TxItem[];
+        setTxList(list);
+        // Fetch comments and reactions per transaction (simple fan-out)
+        await Promise.all(
+          list.map(async (tx) => {
+            try {
+              const [cRes, rRes] = await Promise.all([
+                fetch(`/api/comments?transaction_id=${tx.id}`),
+                fetch(`/api/reactions?transaction_id=${tx.id}`),
+              ]);
+              const cJson = cRes.ok ? await cRes.json() : [];
+              const rJson = rRes.ok ? await rRes.json() : [];
+              setCommentsMap((m) => ({ ...m, [tx.id]: cJson as CommentItem[] }));
+              setReactionsMap((m) => ({ ...m, [tx.id]: rJson as ReactionItem[] }));
+            } catch (_e) {
+              // ignore per-tx fetch errors; UI remains without extras
+            }
+          })
+        );
+      })
       .catch((e) => {
         const msg = typeof e?.message === "string" ? e.message : "明細取得に失敗しました";
         setTxError(msg);
       })
       .finally(() => setTxLoading(false));
+  }
+
+  async function addComment(txId: string) {
+    const body = (commentInputs[txId] ?? "").trim();
+    if (!body) return;
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transaction_id: txId, body }),
+      });
+      if (!res.ok) throw await res.json();
+      const created = (await res.json()) as CommentItem;
+      setCommentsMap((m) => ({ ...m, [txId]: [...(m[txId] ?? []), created] }));
+      setCommentInputs((ci) => ({ ...ci, [txId]: '' }));
+    } catch (e: any) {
+      alert(typeof e?.message === 'string' ? e.message : 'コメント追加に失敗しました');
+    }
+  }
+
+  async function deleteComment(txId: string, commentId: string) {
+    try {
+      const res = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
+      if (!res.ok && res.status !== 204) throw await res.json();
+      setCommentsMap((m) => ({ ...m, [txId]: (m[txId] ?? []).filter((c) => c.id !== commentId) }));
+    } catch (e: any) {
+      alert(typeof e?.message === 'string' ? e.message : 'コメント削除に失敗しました');
+    }
+  }
+
+  function groupReactions(list: ReactionItem[]) {
+    const map = new Map<string, number>();
+    for (const r of list) map.set(r.emoji, (map.get(r.emoji) ?? 0) + 1);
+    return Array.from(map.entries()).map(([emoji, count]) => ({ emoji, count }));
+  }
+
+  async function toggleReaction(txId: string, emoji: string) {
+    try {
+      const res = await fetch('/api/reactions/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transaction_id: txId, emoji }),
+      });
+      if (!res.ok) throw await res.json();
+      // Refresh list after toggle
+      const listRes = await fetch(`/api/reactions?transaction_id=${txId}`);
+      if (listRes.ok) {
+        const rJson = (await listRes.json()) as ReactionItem[];
+        setReactionsMap((m) => ({ ...m, [txId]: rJson }));
+      }
+    } catch (e: any) {
+      alert(typeof e?.message === 'string' ? e.message : 'リアクション更新に失敗しました');
+    }
   }
 
   const monthTitle = `${currentMonth.getFullYear()}年 ${currentMonth.getMonth() + 1}月`;
@@ -206,6 +301,58 @@ export default function CalendarPage() {
                     </div>
                   </div>
                   {tx.memo && <div className="text-xs text-muted-foreground mt-1">{tx.memo}</div>}
+
+                  {/* Reactions */}
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="text-xs text-muted-foreground">リアクション:</div>
+                    {(groupReactions(reactionsMap[tx.id] ?? [])).map((r) => (
+                      <span key={r.emoji} className="text-sm">{r.emoji} {r.count}</span>
+                    ))}
+                    <div className="ml-auto flex gap-1">
+                      {['👍','❤️','🎉'].map((e) => (
+                        <Button key={e} size="sm" variant="ghost" className="h-7 px-2 border"
+                          onClick={() => toggleReaction(tx.id, e)}>
+                          {e}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Comments */}
+                  <div className="mt-3">
+                    <div className="text-xs font-medium mb-1">コメント</div>
+                    <div className="space-y-1 max-h-40 overflow-auto">
+                      {(commentsMap[tx.id] ?? []).map((c) => (
+                        <div key={c.id} className="text-xs flex items-start gap-2">
+                          <div className="flex-1">
+                            <div className="text-muted-foreground">{new Date(c.created_at).toLocaleString()}</div>
+                            <div>{c.body}</div>
+                          </div>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 border"
+                            onClick={() => deleteComment(tx.id, c.id)}>
+                            削除
+                          </Button>
+                        </div>
+                      ))}
+                      {(commentsMap[tx.id] ?? []).length === 0 && (
+                        <div className="text-xs text-muted-foreground">コメントはありません</div>
+                      )}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Input
+                        placeholder="コメントを入力..."
+                        value={commentInputs[tx.id] ?? ''}
+                        onChange={(e) => setCommentInputs((ci) => ({ ...ci, [tx.id]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            addComment(tx.id);
+                          }
+                        }}
+                      />
+                      <Button size="sm" className="h-9" onClick={() => addComment(tx.id)}>投稿</Button>
+                    </div>
+                  </div>
                 </Card>
               ))}
             </div>
