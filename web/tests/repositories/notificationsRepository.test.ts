@@ -1,15 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { notificationsRepository, type Notification } from '@/server/repositories/notificationsRepository'
+import { createSupabaseAdmin, type SupabaseAdminClient } from '@/server/clients/supabase'
 
 vi.mock('@/server/clients/supabase', () => ({
   createSupabaseAdmin: vi.fn(),
 }))
 
 type QueryResult<T> = { data: T; error: null } | { data: null; error: Error }
-const ok = <T,>(data: T): QueryResult<T> => ({ data, error: null } as any)
+const ok = <T,>(data: T): QueryResult<T> => ({ data, error: null } as QueryResult<T>)
 
-import { createSupabaseAdmin } from '@/server/clients/supabase'
+interface SelectChain<T> {
+  select: (s: string) => SelectChain<T>
+  eq: (c: string, v: unknown) => SelectChain<T>
+  order: (c: string, o: { ascending: boolean }) => SelectChain<T> | Promise<QueryResult<T[]>>
+}
 
 describe('notificationsRepository', () => {
 
@@ -26,11 +31,11 @@ describe('notificationsRepository', () => {
         read: false,
         created_at: '2025-09-10T00:00:00Z',
       },
-    ] as any
-
-    const chainBase: any = {
+    ]
+    const chainBase: SelectChain<Notification> = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      order: vi.fn(),
     }
     let orderCalls = 0
     chainBase.order = vi.fn().mockImplementation(() => {
@@ -40,8 +45,8 @@ describe('notificationsRepository', () => {
     })
 
     const from = vi.fn().mockReturnValue(chainBase)
-
-    ;(createSupabaseAdmin as any).mockReturnValue({ from })
+    const createSupabaseAdminMock = vi.mocked(createSupabaseAdmin)
+    createSupabaseAdminMock.mockReturnValue({ from } as unknown as SupabaseAdminClient)
 
     const result = await notificationsRepository.list('h1', 'u1', { onlyUnread: true })
     expect(result).toEqual(rows)
@@ -55,17 +60,24 @@ describe('notificationsRepository', () => {
       payload: {},
       read: true,
       created_at: '2025-09-10T00:00:00Z',
-    } as any
+    }
 
-    const chain: any = {
+    interface UpdateChain<T> {
+      update: (row: unknown) => UpdateChain<T>
+      eq: (c: string, v: unknown) => UpdateChain<T>
+      select: (s: string) => UpdateChain<T>
+      single: () => Promise<QueryResult<T>>
+    }
+    const chain: UpdateChain<Notification> = {
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue(ok(updated)),
     }
-    ;(createSupabaseAdmin as any).mockReturnValue({
+    const createSupabaseAdminMock = vi.mocked(createSupabaseAdmin)
+    createSupabaseAdminMock.mockReturnValue({
       from: vi.fn().mockReturnValue(chain),
-    })
+    } as unknown as SupabaseAdminClient)
 
     const result = await notificationsRepository.markRead('h', 'u', 'n1')
     expect(result).toEqual(updated)

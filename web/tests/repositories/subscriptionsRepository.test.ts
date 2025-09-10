@@ -1,15 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { subscriptionsRepository } from '@/server/repositories/subscriptionsRepository'
+import { createSupabaseAdmin, type SupabaseAdminClient } from '@/server/clients/supabase'
 
 vi.mock('@/server/clients/supabase', () => ({
   createSupabaseAdmin: vi.fn(),
 }))
 
 type QueryResult<T> = { data: T; error: null } | { data: null; error: Error }
-const ok = <T,>(data: T): QueryResult<T> => ({ data, error: null } as any)
+const ok = <T,>(data: T): QueryResult<T> => ({ data, error: null } as QueryResult<T>)
 
-import { createSupabaseAdmin } from '@/server/clients/supabase'
+interface SelectChain<T> {
+  select: (s: string) => SelectChain<T>
+  eq: (c: string, v: unknown) => SelectChain<T>
+  order?: (c: string, o: { ascending: boolean }) => SelectChain<T> | Promise<QueryResult<T[]>>
+  single?: () => Promise<QueryResult<T>>
+}
 
 describe('subscriptionsRepository', () => {
 
@@ -30,9 +36,23 @@ describe('subscriptionsRepository', () => {
       },
     ]
 
-    const chain: any = {
+    interface OrderableChain<T> {
+      select: (s: string) => OrderableChain<T>
+      eq: (c: string, v: unknown) => OrderableChain<T>
+      order: (c: string, o: { ascending: boolean }) => OrderableChain<T> | Promise<QueryResult<T[]>>
+    }
+    const chain: OrderableChain<{
+      id: string
+      name: string
+      expected_amount: number
+      category_id: string
+      account_id: string
+      billing_day: number
+      note: string | null
+    }> = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      order: vi.fn(),
     }
     let orderCalls = 0
     chain.order = vi.fn().mockImplementation(() => {
@@ -41,9 +61,10 @@ describe('subscriptionsRepository', () => {
       return chain
     })
 
-    ;(createSupabaseAdmin as any).mockReturnValue({
+    const createSupabaseAdminMock = vi.mocked(createSupabaseAdmin)
+    createSupabaseAdminMock.mockReturnValue({
       from: vi.fn().mockReturnValue(chain),
-    })
+    } as unknown as SupabaseAdminClient)
 
     const result = await subscriptionsRepository.list('h1')
     expect(result).toEqual(rows)
@@ -67,29 +88,46 @@ describe('subscriptionsRepository', () => {
     fromSelectSingle.mockResolvedValueOnce(ok(subRow)) // first single() for subscription
     fromSelectSingle.mockResolvedValueOnce(ok(txRow)) // second single() for transaction fetch
 
-    const fromChainFirst: any = {
+    interface SingleChain<T> {
+      select: (s: string) => SingleChain<T>
+      eq: (c: string, v: unknown) => SingleChain<T>
+      single: () => Promise<QueryResult<T>>
+    }
+    const fromChainFirst: SingleChain<{ id: string; expected_amount: number; billing_day: number }> = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: fromSelectSingle,
     }
 
-    const fromChainSecond: any = {
+    const fromChainSecond: SingleChain<{
+      id: string
+      kind: 'income' | 'expense'
+      occurred_on: string
+      amount: number
+      category_id: string
+      account_id: string
+      place: string | null
+      memo: string | null
+    }> = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       single: fromSelectSingle,
     }
 
-    const rpc = vi.fn().mockResolvedValue(ok([{ id: 'tx1' }]))
+    const rpc: (fn: string, args: Record<string, unknown>) => Promise<QueryResult<unknown>> = vi
+      .fn()
+      .mockResolvedValue(ok([{ id: 'tx1' }]))
 
     const from = vi
       .fn()
       .mockReturnValueOnce(fromChainFirst)
       .mockReturnValueOnce(fromChainSecond)
 
-    ;(createSupabaseAdmin as any).mockReturnValue({
+    const createSupabaseAdminMock = vi.mocked(createSupabaseAdmin)
+    createSupabaseAdminMock.mockReturnValue({
       from,
       rpc,
-    })
+    } as unknown as SupabaseAdminClient)
 
     const result = await subscriptionsRepository.confirm('h', 's1', {
       userId: 'u1',

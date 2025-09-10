@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Module under test
 import { transactionsRepository, type Transaction } from '@/server/repositories/transactionsRepository'
+import { createSupabaseAdmin, type SupabaseAdminClient } from '@/server/clients/supabase'
 
 // Mock supabase admin client factory
 vi.mock('@/server/clients/supabase', () => ({
@@ -11,10 +12,18 @@ vi.mock('@/server/clients/supabase', () => ({
 type QueryResult<T> = { data: T; error: null } | { data: null; error: Error }
 
 function ok<T>(data: T): QueryResult<T> {
-  return { data, error: null } as any
+  return { data, error: null } as QueryResult<T>
 }
 
-import { createSupabaseAdmin } from '@/server/clients/supabase'
+interface SelectChain<T> {
+  select: (s: string) => SelectChain<T>
+  eq: (c: string, v: unknown) => SelectChain<T>
+  gte?: (c: string, v: unknown) => SelectChain<T>
+  lt?: (c: string, v: unknown) => SelectChain<T>
+  order?: (c: string, o: { ascending: boolean }) => SelectChain<T>
+  single?: () => Promise<QueryResult<T>>
+  then?: (resolve: (r: QueryResult<T[]>) => unknown) => unknown
+}
 
 describe('transactionsRepository', () => {
 
@@ -36,28 +45,31 @@ describe('transactionsRepository', () => {
       },
     ]
 
-    const chain: any = {
+    const chain: SelectChain<Transaction> = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       gte: vi.fn().mockReturnThis(),
       lt: vi.fn().mockReturnThis(),
+      order: vi.fn(),
+      then: undefined,
     }
     chain.order = vi.fn().mockReturnValue(chain)
     // Make the builder thenable so `await query` resolves to `{ data, error }`
-    chain.then = (resolve: any) => resolve(ok(records))
-    ;(createSupabaseAdmin as any).mockReturnValue({
+    chain.then = (resolve: (v: QueryResult<Transaction[]>) => unknown) => resolve(ok(records))
+    const createSupabaseAdminMock = vi.mocked(createSupabaseAdmin)
+    createSupabaseAdminMock.mockReturnValue({
       from: vi.fn().mockReturnValue({
         ...chain,
         then: undefined,
       }),
-    })
+    } as unknown as SupabaseAdminClient)
 
     // final awaited value resolved via order implementation above
 
     const result = await transactionsRepository.listByMonth('h1', '2025-09', 'expense')
     expect(result).toEqual(records)
 
-    expect((createSupabaseAdmin as any).mock.calls.length).toBe(1)
+    expect(vi.mocked(createSupabaseAdmin).mock.calls.length).toBe(1)
     expect(chain.eq).toHaveBeenCalledWith('household_id', 'h1')
     expect(chain.gte).toHaveBeenCalledWith('occurred_on', '2025-09-01')
     expect(chain.lt).toHaveBeenCalledWith('occurred_on', '2025-10-01')
@@ -76,14 +88,15 @@ describe('transactionsRepository', () => {
       memo: 'hello',
     }
 
-    const chain: any = {
+    const chain: SelectChain<Transaction> = {
       insert: vi.fn().mockReturnThis(),
       select: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue(ok(created)),
     }
-    ;(createSupabaseAdmin as any).mockReturnValue({
+    const createSupabaseAdminMock2 = vi.mocked(createSupabaseAdmin)
+    createSupabaseAdminMock2.mockReturnValue({
       from: vi.fn().mockReturnValue(chain),
-    })
+    } as unknown as SupabaseAdminClient)
 
     const result = await transactionsRepository.create('house', {
       kind: 'income',
@@ -92,7 +105,7 @@ describe('transactionsRepository', () => {
       category_id: 'cat',
       account_id: 'acc',
       memo: 'hello',
-    } as any)
+    })
 
     expect(result).toEqual(created)
     expect(chain.insert).toHaveBeenCalled()
