@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState, useTransition } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog"
 
 type Category = { id: string; name: string }
 type Account = { id: string; name: string }
@@ -206,29 +206,25 @@ export default function SubscriptionsPage() {
             value={expectedAmount}
             onChange={(e) => setExpectedAmount(Number(e.target.value || 0))}
           />
-          <Select value={categoryId} onValueChange={setCategoryId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
+          <Select value={categoryId} onChange={(e) => setCategoryId(e.currentTarget.value)}>
+            <option value="" disabled>
+              Category
+            </option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
           </Select>
-          <Select value={accountId} onValueChange={setAccountId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Account" />
-            </SelectTrigger>
-            <SelectContent>
-              {accounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
-                  {a.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
+          <Select value={accountId} onChange={(e) => setAccountId(e.currentTarget.value)}>
+            <option value="" disabled>
+              Account
+            </option>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
           </Select>
           <Input
             placeholder="Billing Day (1-31)"
@@ -281,9 +277,7 @@ export default function SubscriptionsPage() {
       {/* Edit Dialog */}
       <Dialog open={!!edit} onOpenChange={(open) => !open && setEdit(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Subscription</DialogTitle>
-          </DialogHeader>
+          <DialogHeader>Edit Subscription</DialogHeader>
           {edit && (
             <EditForm
               categories={categories}
@@ -299,9 +293,7 @@ export default function SubscriptionsPage() {
       {/* Confirm Dialog */}
       <Dialog open={!!confirmDialog} onOpenChange={(open) => !open && setConfirmDialog(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Subscription</DialogTitle>
-          </DialogHeader>
+          <DialogHeader>Confirm Subscription</DialogHeader>
           {confirmDialog && (
             <div className="space-y-3">
               <Input
@@ -340,29 +332,25 @@ function EditForm(props: {
         value={v.expected_amount ?? 0}
         onChange={(e) => setV({ ...v, expected_amount: Number(e.target.value || 0) })}
       />
-      <Select value={v.category_id ?? ""} onValueChange={(val) => setV({ ...v, category_id: val })}>
-        <SelectTrigger>
-          <SelectValue placeholder="Category" />
-        </SelectTrigger>
-        <SelectContent>
-          {props.categories.map((c) => (
-            <SelectItem key={c.id} value={c.id}>
-              {c.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
+      <Select value={v.category_id ?? ""} onChange={(e) => setV({ ...v, category_id: e.currentTarget.value })}>
+        <option value="" disabled>
+          Category
+        </option>
+        {props.categories.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
       </Select>
-      <Select value={v.account_id ?? ""} onValueChange={(val) => setV({ ...v, account_id: val })}>
-        <SelectTrigger>
-          <SelectValue placeholder="Account" />
-        </SelectTrigger>
-        <SelectContent>
-          {props.accounts.map((a) => (
-            <SelectItem key={a.id} value={a.id}>
-              {a.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
+      <Select value={v.account_id ?? ""} onChange={(e) => setV({ ...v, account_id: e.currentTarget.value })}>
+        <option value="" disabled>
+          Account
+        </option>
+        {props.accounts.map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.name}
+          </option>
+        ))}
       </Select>
       <Input
         placeholder="Billing Day (1-31)"
