@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import Select from "@/components/ui/select"
 
 type Category = {
   id: string
@@ -152,15 +152,14 @@ export default function SettingsPage() {
       <Card className="p-4 space-y-3">
         <h2 className="text-lg font-medium">締め日</h2>
         <div className="flex items-center gap-3">
-          <Select value={closingDay} onValueChange={setClosingDay}>
-            <SelectTrigger className="w-24">
-              <SelectValue placeholder="日付" />
-            </SelectTrigger>
-            <SelectContent>
-              {days.map((d) => (
-                <SelectItem key={d} value={d}>{d}日</SelectItem>
-              ))}
-            </SelectContent>
+          <Select
+            className="w-24"
+            value={closingDay}
+            onChange={(e) => setClosingDay(e.target.value)}
+          >
+            {days.map((d) => (
+              <option key={d} value={d}>{d}日</option>
+            ))}
           </Select>
           <Button onClick={onSaveClosingDay}>保存</Button>
         </div>
@@ -177,14 +176,13 @@ export default function SettingsPage() {
               value={catName}
               onChange={(e) => setCatName(e.target.value)}
             />
-            <Select value={catType} onValueChange={(v) => setCatType(v as "income" | "expense") }>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="expense">支出</SelectItem>
-                <SelectItem value="income">収入</SelectItem>
-              </SelectContent>
+            <Select
+              className="w-32"
+              value={catType}
+              onChange={(e) => setCatType(e.target.value as "income" | "expense")}
+            >
+              <option value="expense">支出</option>
+              <option value="income">収入</option>
             </Select>
             <Button onClick={createCategory}>追加</Button>
           </div>
