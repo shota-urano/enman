@@ -1,10 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+// Dialog imports not used on this page
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import AppHeader from "@/components/AppHeader";
 
@@ -87,7 +86,6 @@ function getCalendarMatrix(base: Date) {
 }
 
 export default function CalendarPage() {
-  const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
   const [data, setData] = useState<DailyTotalsItem[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -119,23 +117,29 @@ export default function CalendarPage() {
         if (aborted) return;
         const rows: unknown[] = Array.isArray(json) ? json : [];
         const normalized: DailyTotalsItem[] = rows
-          .map((it: any) => {
-            const date: string | undefined = it?.date ?? it?.day;
-            const income = typeof it?.income_total === 'number'
-              ? it.income_total
-              : typeof it?.income === 'number'
-                ? it.income
-                : 0;
-            const expense = typeof it?.expense_total === 'number'
-              ? it.expense_total
-              : typeof it?.expense === 'number'
-                ? it.expense
-                : 0;
-            const net = typeof it?.net_total === 'number'
-              ? it.net_total
-              : (income - expense);
+          .map((it: unknown) => {
+            const o = (it ?? {}) as Record<string, unknown>;
+            const date =
+              typeof o.date === "string"
+                ? o.date
+                : typeof o.day === "string"
+                  ? o.day
+                  : undefined;
+            const income =
+              typeof o.income_total === "number"
+                ? (o.income_total as number)
+                : typeof o.income === "number"
+                  ? (o.income as number)
+                  : 0;
+            const expense =
+              typeof o.expense_total === "number"
+                ? (o.expense_total as number)
+                : typeof o.expense === "number"
+                  ? (o.expense as number)
+                  : 0;
+            const net = typeof o.net_total === "number" ? (o.net_total as number) : income - expense;
             if (!date) return null;
-            return { date, income_total: income, expense_total: expense, net_total: net } as DailyTotalsItem;
+            return { date, income_total: income, expense_total: expense, net_total: net } satisfies DailyTotalsItem;
           })
           .filter((v): v is DailyTotalsItem => !!v);
         setData(normalized);
@@ -155,11 +159,17 @@ export default function CalendarPage() {
         if (aborted) return;
         const rows: unknown[] = Array.isArray(json) ? json : [];
         const normalized: PendingConfirmItem[] = rows
-          .map((it: any) => ({ day: it?.day, pending_count: Number(it?.pending_count ?? 0) }))
-          .filter((v): v is PendingConfirmItem => !!v.day);
+          .map((it: unknown) => {
+            const o = (it ?? {}) as Record<string, unknown>;
+            const day = typeof o.day === "string" ? o.day : undefined;
+            const pending_count = typeof o.pending_count === "number" ? o.pending_count : Number(o.pending_count ?? 0);
+            if (!day) return null;
+            return { day, pending_count } satisfies PendingConfirmItem;
+          })
+          .filter((v): v is PendingConfirmItem => !!v);
         setPending(normalized);
       })
-      .catch((_e) => {
+      .catch(() => {
         if (aborted) return;
         // pendingは非致命、無視
         setPending([]);
@@ -234,7 +244,7 @@ export default function CalendarPage() {
               const rJson = rRes.ok ? await rRes.json() : [];
               setCommentsMap((m) => ({ ...m, [tx.id]: cJson as CommentItem[] }));
               setReactionsMap((m) => ({ ...m, [tx.id]: rJson as ReactionItem[] }));
-            } catch (_e) {
+            } catch {
               // ignore per-tx fetch errors; UI remains without extras
             }
           })
