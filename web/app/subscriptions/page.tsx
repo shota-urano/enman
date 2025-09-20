@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
-import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog"
 import AppHeader from "@/components/AppHeader"
 

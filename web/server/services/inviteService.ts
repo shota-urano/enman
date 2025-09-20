@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto'
 import { serverEnv } from '@/server/config/env'
-import { badRequest, systemError } from '@/server/utils/errors'
+import { badRequest } from '@/server/utils/errors'
 
 // Simple signed token: base64url(header).base64url(payload).base64url(signature)
 // header: { alg: 'HS256', typ: 'INV' }

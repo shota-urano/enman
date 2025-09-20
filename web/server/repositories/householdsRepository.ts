@@ -27,7 +27,7 @@ export const householdsRepository = {
     const { error: mErr } = await supabase
       .from('household_members')
       .insert({
-        household_id: (hh as any).id,
+        household_id: (hh as Household).id,
         user_id: ownerUserId,
         role: 'owner',
         approved: true,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { assertHouseholdMember, getSession } from '@/server/utils/auth'
-import { normalizeError, toErrorBody, forbidden } from '@/server/utils/errors'
+import { normalizeError, toErrorBody } from '@/server/utils/errors'
 import { householdsRepository } from '@/server/repositories/householdsRepository'
 
 export async function GET(req: NextRequest) {

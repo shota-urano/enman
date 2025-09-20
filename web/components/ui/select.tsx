@@ -27,15 +27,16 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
     const selectRef = React.useRef<HTMLDivElement>(null)
 
     // children からオプションを抽出する関数
+    type OptionElProps = { value?: string | number | readonly string[]; children?: React.ReactNode }
     const extractOptionsFromChildren = React.useMemo(() => {
       const extractedOptions: SelectOption[] = []
       
       React.Children.forEach(children, (child) => {
         if (React.isValidElement(child) && child.type === 'option') {
-          const el = child as React.ReactElement<any>
+          const el = child as React.ReactElement<OptionElProps>
           extractedOptions.push({
-            value: String(el.props.value || ""),
-            label: String(el.props.children || "")
+            value: String((el.props as OptionElProps).value || ""),
+            label: String((el.props as OptionElProps).children || "")
           })
         }
       })
@@ -92,7 +93,15 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
     }, [value])
 
     return (
-      <div ref={selectRef} className={cn("relative", className)} {...props}>
+      <div
+        ref={(node) => {
+          selectRef.current = node
+          if (typeof ref === 'function') ref(node)
+          else if (ref && typeof ref === 'object') (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+        }}
+        className={cn("relative", className)}
+        {...props}
+      >
         <button
           type="button"
           onClick={handleToggle}

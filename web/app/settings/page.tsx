@@ -89,7 +89,7 @@ export default function SettingsPage() {
       if (!res.ok) throw new Error('update failed')
       const updated = await res.json()
       setMembers((prev) => prev.map((m) => (m.user_id === userId ? updated : m)))
-    } catch (e) {
+    } catch {
       alert('承認の更新に失敗しました')
     }
   }

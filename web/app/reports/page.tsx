@@ -125,17 +125,21 @@ export default function ReportsPage() {
     [totals]
   );
 
-  const chartColors = [
-    "var(--color-chart-1)",
-    "var(--color-chart-2)",
-    "var(--color-chart-3)",
-    "var(--color-chart-4)",
-    "var(--color-chart-5)",
-  ];
+  const chartColors = useMemo(
+    () => [
+      "var(--color-chart-1)",
+      "var(--color-chart-2)",
+      "var(--color-chart-3)",
+      "var(--color-chart-4)",
+      "var(--color-chart-5)",
+    ],
+    []
+  );
 
-  const pieStyle = useMemo(() => ({
-    background: buildPieGradient(expenseTotals, chartColors),
-  }), [expenseTotals]);
+  const pieStyle = useMemo(
+    () => ({ background: buildPieGradient(expenseTotals, chartColors) }),
+    [expenseTotals, chartColors]
+  );
 
   function prevMonth() {
     setCurrentMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));

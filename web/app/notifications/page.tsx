@@ -331,7 +331,7 @@ export default function NotificationsPage() {
               setConfirm(null);
               // Refresh list to reflect unread count
               await load();
-            } catch (e) {
+            } catch {
               show("支払いの登録に失敗しました", "error");
             } finally {
               setConfirmBusy(false);

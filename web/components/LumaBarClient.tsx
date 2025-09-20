@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import LumaBar from "@/components/LumaBar"
 
@@ -32,7 +32,7 @@ export default function LumaBarClient() {
           const list = await res.json()
           setUnread(Array.isArray(list) ? list.length : 0)
         }
-      } catch (_e) {
+      } catch {
         // ignore
       } finally {
         timer = window.setTimeout(load, 30_000)
