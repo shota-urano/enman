@@ -9,6 +9,7 @@ export interface SelectOption {
 
 export interface SelectProps {
   value?: string
+  defaultValue?: string
   onChange?: (value: string) => void
   children?: React.ReactNode
   className?: string
@@ -20,9 +21,9 @@ export interface SelectProps {
 }
 
 export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
-  ({ className, children, value, onChange, placeholder = "選択してください", disabled = false, options = [], variant = 'default', appearance = 'solid', ...props }, ref) => {
+  ({ className, children, value, defaultValue, onChange, placeholder = "選択してください", disabled = false, options = [], variant = 'default', appearance = 'solid', ...props }, ref) => {
     const [isOpen, setIsOpen] = React.useState(false)
-    const [selectedValue, setSelectedValue] = React.useState(value || "")
+    const [selectedValue, setSelectedValue] = React.useState(value ?? defaultValue ?? "")
     const selectRef = React.useRef<HTMLDivElement>(null)
 
     // children からオプションを抽出する関数
@@ -31,9 +32,10 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
       
       React.Children.forEach(children, (child) => {
         if (React.isValidElement(child) && child.type === 'option') {
+          const el = child as React.ReactElement<any>
           extractedOptions.push({
-            value: String(child.props.value || ""),
-            label: String(child.props.children || "")
+            value: String(el.props.value || ""),
+            label: String(el.props.children || "")
           })
         }
       })

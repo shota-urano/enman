@@ -8,7 +8,58 @@ export type HouseholdMember = {
   created_at: string
 }
 
+export type Household = {
+  id: string
+  name: string
+}
+
 export const householdsRepository = {
+  async create(ownerUserId: string, name: string): Promise<Household> {
+    const supabase = createSupabaseAdmin()
+    const { data: hh, error: hErr } = await supabase
+      .from('households')
+      .insert({ name })
+      .select('id, name')
+      .single()
+    if (hErr) throw hErr
+    if (!hh) throw new Error('Failed to create household')
+
+    const { error: mErr } = await supabase
+      .from('household_members')
+      .insert({
+        household_id: (hh as any).id,
+        user_id: ownerUserId,
+        role: 'owner',
+        approved: true,
+        joined_at: new Date().toISOString(),
+      })
+    if (mErr) throw mErr
+
+    return hh as Household
+  },
+
+  async join(userId: string, householdId: string): Promise<void> {
+    const supabase = createSupabaseAdmin()
+    const { data: exists, error: selErr } = await supabase
+      .from('household_members')
+      .select('user_id')
+      .eq('household_id', householdId)
+      .eq('user_id', userId)
+      .limit(1)
+    if (selErr) throw selErr
+    if (exists && exists.length > 0) return
+
+    const { error } = await supabase
+      .from('household_members')
+      .insert({
+        household_id: householdId,
+        user_id: userId,
+        role: 'member',
+        approved: false,
+        joined_at: null,
+      })
+    if (error) throw error
+  },
   async listMembers(householdId: string): Promise<HouseholdMember[]> {
     const supabase = createSupabaseAdmin()
     const { data, error } = await supabase

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +87,7 @@ function getCalendarMatrix(base: Date) {
 }
 
 export default function CalendarPage() {
+  const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
   const [data, setData] = useState<DailyTotalsItem[] | null>(null);
   const [loading, setLoading] = useState(false);

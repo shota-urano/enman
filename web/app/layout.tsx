@@ -9,7 +9,7 @@ import OnboardingModal from "@/components/OnboardingModal";
 // Use Noto Sans JP as primary rounded-friendly Japanese font
 const notoSans = Noto_Sans_JP({
   variable: "--font-geist-sans",
-  subsets: ["latin", "latin-ext", "japanese"],
+  subsets: ["latin"],
   display: "swap",
   weight: ["300", "400", "500", "700"],
 });
@@ -17,7 +17,7 @@ const notoSans = Noto_Sans_JP({
 // Provide an optional rounded accent font for headings if desired
 const mPlusRounded = M_PLUS_Rounded_1c({
   variable: "--font-rounded-jp",
-  subsets: ["latin", "japanese"],
+  subsets: ["latin"],
   display: "swap",
   weight: ["400", "500", "700"],
 });

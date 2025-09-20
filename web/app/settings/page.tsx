@@ -219,7 +219,7 @@ export default function SettingsPage() {
           <Select
             className="w-24"
             value={closingDay}
-            onChange={(e) => setClosingDay(e.target.value)}
+            onChange={(v) => setClosingDay(v)}
           >
             {days.map((d) => (
               <option key={d} value={d}>{d}日</option>
@@ -243,7 +243,7 @@ export default function SettingsPage() {
             <Select
               className="w-32"
               value={catType}
-              onChange={(e) => setCatType(e.target.value as "income" | "expense")}
+              onChange={(v) => setCatType(v as "income" | "expense")}
             >
               <option value="expense">支出</option>
               <option value="income">収入</option>
