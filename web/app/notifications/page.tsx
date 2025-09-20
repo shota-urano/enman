@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardBody } from "@/components/ui/card";
@@ -51,6 +51,14 @@ function kindMeta(n: Notification) {
 }
 
 export default function NotificationsPage() {
+  return (
+    <Suspense fallback={<div className="p-6">読み込み中...</div>}>
+      <NotificationsContent />
+    </Suspense>
+  );
+}
+
+function NotificationsContent() {
   const sp = useSearchParams();
   const router = useRouter();
   const { show } = useToast();
