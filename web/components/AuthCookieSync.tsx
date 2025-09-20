@@ -18,24 +18,31 @@ function setAccessTokenCookie(token?: string, expiresAt?: number | null) {
 
 export default function AuthCookieSync() {
   useEffect(() => {
-    const supabase = createSupabaseBrowser()
+    let unsub: (() => void) | undefined
+    try {
+      const supabase = createSupabaseBrowser()
 
-    // Initial sync
-    supabase.auth.getSession().then(({ data }) => {
-      const token = data.session?.access_token
-      const expiresAt = data.session?.expires_at ?? null
-      setAccessTokenCookie(token, expiresAt)
-    })
+      // Initial sync
+      supabase.auth.getSession().then(({ data }) => {
+        const token = data.session?.access_token
+        const expiresAt = data.session?.expires_at ?? null
+        setAccessTokenCookie(token, expiresAt)
+      })
 
-    // Keep cookie in sync with auth state
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      const token = session?.access_token
-      const expiresAt = session?.expires_at ?? null
-      setAccessTokenCookie(token, expiresAt)
-    })
+      // Keep cookie in sync with auth state
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+        const token = session?.access_token
+        const expiresAt = session?.expires_at ?? null
+        setAccessTokenCookie(token, expiresAt)
+      })
+      unsub = () => sub.subscription.unsubscribe()
+    } catch (e) {
+      // In production, avoid crashing the entire app if env is missing/invalid
+      console.warn('AuthCookieSync disabled:', e)
+    }
 
     return () => {
-      sub.subscription.unsubscribe()
+      if (unsub) unsub()
     }
   }, [])
 
