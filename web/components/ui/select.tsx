@@ -21,7 +21,7 @@ export interface SelectProps {
 }
 
 export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
-  ({ className, children, value, defaultValue, onChange, placeholder = "選択してください", disabled = false, options = [], variant = 'default', appearance = 'solid', ...props }, ref) => {
+  ({ className, children, value, defaultValue, onChange, placeholder = "選択してください", disabled = false, options = [], variant = 'default', appearance = 'solid' }, ref) => {
     const [isOpen, setIsOpen] = React.useState(false)
     const [selectedValue, setSelectedValue] = React.useState(value ?? defaultValue ?? "")
     const selectRef = React.useRef<HTMLDivElement>(null)
@@ -100,7 +100,6 @@ export const Select = React.forwardRef<HTMLDivElement, SelectProps>(
           else if (ref && typeof ref === 'object') (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
         }}
         className={cn("relative", className)}
-        {...props}
       >
         <button
           type="button"
