@@ -7,6 +7,8 @@ export const subscriptionCreateSchema = z.object({
   account_id: z.string().min(1, 'account_id is required'),
   billing_day: z.number().int().min(1).max(31),
   note: z.string().max(500).nullable().optional(),
+  // ユーザーが「確認が必要」かを設定（省略時は DB のデフォルトに委ねる）
+  requires_confirmation: z.boolean().optional(),
 })
 
 export type SubscriptionCreateInput = z.infer<typeof subscriptionCreateSchema>

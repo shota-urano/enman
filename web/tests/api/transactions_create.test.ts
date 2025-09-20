@@ -121,7 +121,7 @@ describe('POST /api/transactions', () => {
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json).toEqual(tx)
-    expect(transactionsRepository.create).toHaveBeenCalledWith('h-1', input)
+    expect(transactionsRepository.create).toHaveBeenCalledWith('h-1', 'u-1', input)
   })
 
   it('accepts valid payload via schema', () => {

@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     if (!month) throw badRequest('month is required')
     if (!isMonth(month)) throw badRequest('month must be YYYY-MM')
 
-    const data = await reportsRepository.getDailyTotals(session.householdId!, month)
+    const data = await reportsRepository.getDailyTotals(session.householdId!, month, session.token)
     return NextResponse.json(data, { status: 200 })
   } catch (e: unknown) {
     const err = normalizeError(e)

@@ -97,9 +97,14 @@ describe('PATCH /api/subscriptions/:id', () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json).toEqual(sub)
-    expect(subscriptionsRepository.update).toHaveBeenCalledWith('h-1', 's-1', {
-      name: 'Netflix',
-      billing_day: 15,
-    })
+    expect(subscriptionsRepository.update).toHaveBeenCalledWith(
+      'h-1',
+      's-1',
+      {
+        name: 'Netflix',
+        billing_day: 15,
+      },
+      'u-1',
+    )
   })
 })

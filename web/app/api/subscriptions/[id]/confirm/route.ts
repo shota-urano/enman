@@ -35,7 +35,7 @@ export async function POST(
     const tx = await subscriptionsRepository.confirm(
       session.householdId!,
       id,
-      { amount: json.amount, userId: session.userId },
+      { amount: json.amount, userId: session.userId, accessToken: session.token },
     )
     return NextResponse.json(tx, { status: 201 })
   } catch (e: unknown) {

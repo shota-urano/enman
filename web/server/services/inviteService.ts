@@ -34,8 +34,12 @@ export const inviteService = {
     email?: string,
     ttlSeconds = 60 * 60 * 24,
   ): string {
-    const secret = serverEnv.INVITE_SECRET
-    if (!secret) throw systemError('Missing INVITE_SECRET')
+    // Prefer explicit secret; fall back to server role key (dev-friendly)
+    const secret =
+      serverEnv.INVITE_SECRET ||
+      serverEnv.SUPABASE_SERVICE_ROLE ||
+      serverEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      'dev-invite-secret'
 
     const header = { alg: 'HS256', typ: 'INV' }
     const now = Math.floor(Date.now() / 1000)
@@ -53,8 +57,11 @@ export const inviteService = {
   },
 
   verifyToken(token: string): InvitePayload {
-    const secret = serverEnv.INVITE_SECRET
-    if (!secret) throw systemError('Missing INVITE_SECRET')
+    const secret =
+      serverEnv.INVITE_SECRET ||
+      serverEnv.SUPABASE_SERVICE_ROLE ||
+      serverEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      'dev-invite-secret'
     const parts = token.split('.')
     if (parts.length !== 3) throw badRequest('Invalid token format')
     const [h, p, s] = parts

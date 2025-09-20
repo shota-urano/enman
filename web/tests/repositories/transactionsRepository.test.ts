@@ -103,7 +103,7 @@ describe('transactionsRepository', () => {
       from: vi.fn().mockReturnValue(chain),
     } as unknown as SupabaseAdminClient)
 
-    const result = await transactionsRepository.create('house', {
+    const result = await transactionsRepository.create('house', 'user-1', {
       kind: 'income',
       occurred_on: '2025-09-09',
       amount: 3000,

@@ -15,3 +15,24 @@ export function createSupabaseAdmin(): SupabaseClient {
 
 export type SupabaseAdminClient = ReturnType<typeof createSupabaseAdmin>
 
+export function createSupabaseUser(accessToken: string): SupabaseClient {
+  const url = serverEnv.SUPABASE_URL
+  const anon = serverEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url) throw new Error('Missing SUPABASE_URL')
+  if (!anon) throw new Error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY')
+  return createClient(url, anon, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  })
+}
+
+export type SupabaseUserClient = ReturnType<typeof createSupabaseUser>
+

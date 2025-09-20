@@ -120,14 +120,18 @@ describe('POST /api/subscriptions', () => {
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json).toEqual(sub)
-    expect(subscriptionsRepository.create).toHaveBeenCalledWith('h-1', {
-      name: 'Netflix',
-      expected_amount: 1200,
-      category_id: 'c-1',
-      account_id: 'a-1',
-      billing_day: 15,
-      note: null,
-    })
+    expect(subscriptionsRepository.create).toHaveBeenCalledWith(
+      'h-1',
+      {
+        name: 'Netflix',
+        expected_amount: 1200,
+        category_id: 'c-1',
+        account_id: 'a-1',
+        billing_day: 15,
+        note: null,
+      },
+      'u-1',
+    )
   })
 })
 

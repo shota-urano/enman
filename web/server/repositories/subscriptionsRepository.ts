@@ -1,4 +1,4 @@
-import { createSupabaseAdmin } from '@/server/clients/supabase'
+import { createSupabaseAdmin, createSupabaseUser } from '@/server/clients/supabase'
 
 export type Subscription = {
   id: string
@@ -8,6 +8,7 @@ export type Subscription = {
   account_id: string
   billing_day: number
   note: string | null
+  requires_confirmation?: boolean
 }
 
 export const subscriptionsRepository = {
@@ -15,7 +16,7 @@ export const subscriptionsRepository = {
     const supabase = createSupabaseAdmin()
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('id, name, expected_amount, category_id, account_id, billing_day, note')
+      .select('id, name, expected_amount, category_id, account_id, billing_day, note, requires_confirmation')
       .eq('household_id', householdId)
       .order('billing_day', { ascending: true })
       .order('name', { ascending: true })
@@ -26,9 +27,9 @@ export const subscriptionsRepository = {
   async confirm(
     householdId: string,
     id: string,
-    options: { amount?: number; occurred_on?: string; userId: string },
+    options: { amount?: number; occurred_on?: string; userId?: string; accessToken?: string },
   ): Promise<import('./transactionsRepository').Transaction> {
-    const supabase = createSupabaseAdmin()
+    const supabase = options.accessToken ? createSupabaseUser(options.accessToken) : createSupabaseAdmin()
 
     // Fetch subscription to derive defaults (amount/occurred_on)
     const { data: sub, error: subErr } = await supabase
@@ -62,11 +63,10 @@ export const subscriptionsRepository = {
     const { data: rpcData, error: rpcErr } = await supabase.rpc(
       'confirm_subscription_tx',
       {
-        _household: householdId,
-        _subscription: id,
         _amount: amount,
+        _household: householdId,
         _occurred_on: occurred_on,
-        _user: options.userId,
+        _subscription: id,
       },
     )
     if (rpcErr) throw rpcErr
@@ -112,7 +112,9 @@ export const subscriptionsRepository = {
       account_id: string
       billing_day: number
       note?: string | null
+      requires_confirmation?: boolean
     },
+    userId: string,
   ): Promise<Subscription> {
     const supabase = createSupabaseAdmin()
     const { data, error } = await supabase
@@ -125,8 +127,11 @@ export const subscriptionsRepository = {
         account_id: input.account_id,
         billing_day: input.billing_day,
         note: input.note ?? null,
+        requires_confirmation: input.requires_confirmation,
+        created_by: userId,
+        updated_by: userId,
       })
-      .select('id, name, expected_amount, category_id, account_id, billing_day, note')
+      .select('id, name, expected_amount, category_id, account_id, billing_day, note, requires_confirmation')
       .single()
 
     if (error) throw error
@@ -143,15 +148,17 @@ export const subscriptionsRepository = {
       account_id: string
       billing_day: number
       note: string | null
+      requires_confirmation: boolean
     }>,
+    userId?: string,
   ): Promise<Subscription> {
     const supabase = createSupabaseAdmin()
     const { data, error } = await supabase
       .from('subscriptions')
-      .update(input)
+      .update({ ...(input as Record<string, unknown>), ...(userId ? { updated_by: userId } : {}) })
       .eq('household_id', householdId)
       .eq('id', id)
-      .select('id, name, expected_amount, category_id, account_id, billing_day, note')
+      .select('id, name, expected_amount, category_id, account_id, billing_day, note, requires_confirmation')
       .single()
 
     if (error) throw error

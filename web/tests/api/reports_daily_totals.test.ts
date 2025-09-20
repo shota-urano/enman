@@ -103,7 +103,7 @@ describe('GET /api/reports/daily-totals', () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json).toEqual(rows)
-    expect(reportsRepository.getDailyTotals).toHaveBeenCalledWith('h-1', '2025-09')
+    expect(reportsRepository.getDailyTotals).toHaveBeenCalledWith('h-1', '2025-09', 't')
   })
 })
 

@@ -1,4 +1,4 @@
-import { createSupabaseAdmin } from '@/server/clients/supabase'
+import { createSupabaseAdmin, createSupabaseUser } from '@/server/clients/supabase'
 
 export type Transaction = {
   id: string
@@ -12,11 +12,28 @@ export type Transaction = {
 }
 
 export const transactionsRepository = {
+  async getById(
+    householdId: string,
+    id: string,
+  ): Promise<Transaction> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('id, kind, occurred_on, amount, category_id, account_id, place, memo')
+      .eq('household_id', householdId)
+      .eq('id', id)
+      .single()
+
+    if (error) throw error
+    if (!data) throw new Error('Transaction not found')
+    return data as Transaction
+  },
   async remove(
     householdId: string,
     id: string,
+    options?: { accessToken?: string; userId?: string },
   ): Promise<void> {
-    const supabase = createSupabaseAdmin()
+    const supabase = options?.accessToken ? createSupabaseUser(options.accessToken) : createSupabaseAdmin()
     const { data, error } = await supabase
       .from('transactions')
       .delete()
@@ -32,11 +49,13 @@ export const transactionsRepository = {
     householdId: string,
     id: string,
     input: import('@/server/schemas/transaction').TxUpdateInput,
+    userId?: string,
+    options?: { accessToken?: string },
   ): Promise<Transaction> {
-    const supabase = createSupabaseAdmin()
+    const supabase = options?.accessToken ? createSupabaseUser(options.accessToken) : createSupabaseAdmin()
     const { data, error } = await supabase
       .from('transactions')
-      .update(input as Record<string, unknown>)
+      .update({ ...(input as Record<string, unknown>), ...(userId ? { updated_by: userId } : {}) })
       .eq('household_id', householdId)
       .eq('id', id)
       .select(
@@ -50,9 +69,11 @@ export const transactionsRepository = {
   },
   async create(
     householdId: string,
+    userId: string,
     input: import('@/server/schemas/transaction').TxCreateInput,
+    options?: { accessToken?: string },
   ): Promise<Transaction> {
-    const supabase = createSupabaseAdmin()
+    const supabase = options?.accessToken ? createSupabaseUser(options.accessToken) : createSupabaseAdmin()
     const { data, error } = await supabase
       .from('transactions')
       .insert({
@@ -64,6 +85,8 @@ export const transactionsRepository = {
         account_id: input.account_id,
         place: input.place ?? null,
         memo: input.memo ?? null,
+        created_by: userId,
+        updated_by: userId,
       })
       .select('id, kind, occurred_on, amount, category_id, account_id, place, memo')
       .single()

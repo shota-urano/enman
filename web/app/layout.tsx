@@ -1,11 +1,25 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Noto_Sans_JP, Geist_Mono, M_PLUS_Rounded_1c } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
+import AuthCookieSync from "@/components/AuthCookieSync";
+import LumaBarClient from "@/components/LumaBarClient";
+import OnboardingModal from "@/components/OnboardingModal";
 
-const geistSans = Geist({
+// Use Noto Sans JP as primary rounded-friendly Japanese font
+const notoSans = Noto_Sans_JP({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext", "japanese"],
+  display: "swap",
+  weight: ["300", "400", "500", "700"],
+});
+
+// Provide an optional rounded accent font for headings if desired
+const mPlusRounded = M_PLUS_Rounded_1c({
+  variable: "--font-rounded-jp",
+  subsets: ["latin", "japanese"],
+  display: "swap",
+  weight: ["400", "500", "700"],
 });
 
 const geistMono = Geist_Mono({
@@ -26,10 +40,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${notoSans.variable} ${mPlusRounded.variable} ${geistMono.variable} antialiased pb-[calc(env(safe-area-inset-bottom)+96px)]`}
       >
         <ToastProvider>
+          {/* Sync Supabase access token into a cookie for API auth */}
+          <AuthCookieSync />
+          {/* Show onboarding only for first login (no household membership) */}
+          <OnboardingModal />
           {children}
+          {/* Global bottom navigation */}
+          <LumaBarClient />
         </ToastProvider>
       </body>
     </html>

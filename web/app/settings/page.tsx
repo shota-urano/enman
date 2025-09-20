@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import Select from "@/components/ui/select"
+import AppHeader from "@/components/AppHeader"
 
 type Category = {
   id: string
@@ -27,6 +28,11 @@ export default function SettingsPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loadingMasters, setLoadingMasters] = useState(false)
+
+  // Members approval
+  const [members, setMembers] = useState<Array<{ user_id: string; role: 'owner' | 'member'; approved: boolean; joined_at: string | null; created_at: string }>>([])
+  const [loadingMembers, setLoadingMembers] = useState(false)
+  const [memberError, setMemberError] = useState<string | null>(null)
 
   // New master inputs
   const [catName, setCatName] = useState("")
@@ -54,6 +60,40 @@ export default function SettingsPage() {
     load()
   }, [])
 
+  // Load members
+  useEffect(() => {
+    const loadMembers = async () => {
+      setLoadingMembers(true)
+      setMemberError(null)
+      try {
+        const res = await fetch('/api/households/members', { cache: 'no-store' })
+        if (!res.ok) throw new Error('failed to load members')
+        const list = await res.json()
+        setMembers(Array.isArray(list) ? list : [])
+      } catch (e: unknown) {
+        setMemberError(e instanceof Error ? e.message : 'load error')
+      } finally {
+        setLoadingMembers(false)
+      }
+    }
+    loadMembers()
+  }, [])
+
+  const toggleApprove = async (userId: string, approved: boolean) => {
+    try {
+      const res = await fetch(`/api/households/members/${userId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved }),
+      })
+      if (!res.ok) throw new Error('update failed')
+      const updated = await res.json()
+      setMembers((prev) => prev.map((m) => (m.user_id === userId ? updated : m)))
+    } catch (e) {
+      alert('承認の更新に失敗しました')
+    }
+  }
+
   const createInvite = async () => {
     setLoadingInvite(true)
     try {
@@ -65,15 +105,38 @@ export default function SettingsPage() {
     } catch (e) {
       console.error(e)
       setInviteToken(null)
-      alert("招待リンクの発行に失敗しました")
+      alert("招待コードの発行に失敗しました")
     } finally {
       setLoadingInvite(false)
     }
   }
 
+  const copyInvite = async () => {
+    if (!inviteToken) return
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(inviteToken)
+        alert("招待コードをコピーしました")
+      } else {
+        // Fallback for older browsers
+        const ta = document.createElement("textarea")
+        ta.value = inviteToken
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand("copy")
+        document.body.removeChild(ta)
+        alert("招待コードをコピーしました")
+      }
+    } catch (e) {
+      console.error(e)
+      alert("コピーに失敗しました")
+    }
+  }
+
   const createCategory = async () => {
     if (!catName.trim()) return
-    const payload = { name: catName.trim(), type: catType, sort_order: null as number | null }
+    // sort_order はサーバ側でデフォルト0。nullを送るとバリデーションエラーになるため送らない。
+    const payload = { name: catName.trim(), type: catType }
     const res = await fetch("/api/categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -105,7 +168,9 @@ export default function SettingsPage() {
 
   const createAccount = async () => {
     if (!accName.trim()) return
-    const payload = { name: accName.trim(), sort_order: null as number | null }
+    // アカウント種別はUI未実装のため既定で 'cash' を付与。
+    // sort_order はサーバ側デフォルトに任せる。
+    const payload = { name: accName.trim(), type: 'cash' as const }
     const res = await fetch("/api/accounts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -140,13 +205,12 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="container mx-auto max-w-5xl p-6 space-y-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">設定</h1>
-        <Link href="/">
-          <Button variant="secondary">ホームへ戻る</Button>
-        </Link>
-      </header>
+    <main>
+      <AppHeader
+        title="設定"
+        right={<Link href="/"><Button variant="secondary" className="h-9">ホーム</Button></Link>}
+      />
+      <div className="container mx-auto max-w-5xl p-4 md:p-6 space-y-8">
 
       {/* Closing day */}
       <Card className="p-4 space-y-3">
@@ -234,17 +298,54 @@ export default function SettingsPage() {
 
       {/* Invite */}
       <Card className="p-4 space-y-3">
-        <h2 className="text-lg font-medium">招待リンク</h2>
+        <h2 className="text-lg font-medium">招待コード</h2>
         <div className="flex items-center gap-2">
           <Button onClick={createInvite} disabled={loadingInvite}>
-            {loadingInvite ? "発行中..." : "招待リンクを発行"}
+            {loadingInvite ? "発行中..." : "招待コードを発行"}
           </Button>
+          {inviteToken && <Input readOnly value={inviteToken} />}
           {inviteToken && (
-            <Input readOnly value={`${typeof window !== "undefined" ? window.location.origin : ""}/api/households/join?token=${inviteToken}`} />
+            <Button variant="secondary" onClick={copyInvite}>
+              コピー
+            </Button>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">発行済みトークンは一定時間で無効になります。</p>
+        <p className="text-xs text-muted-foreground">発行済みコードは一定時間で無効になります。</p>
       </Card>
+
+      {/* Members Approval */}
+      <Card className="p-4 space-y-3">
+        <h2 className="text-lg font-medium">メンバー承認</h2>
+        {memberError && <p className="text-sm text-red-600" role="alert">{memberError}</p>}
+        {loadingMembers ? (
+          <p className="text-sm text-muted-foreground">読み込み中...</p>
+        ) : members.length === 0 ? (
+          <p className="text-sm text-muted-foreground">メンバーがいません</p>
+        ) : (
+          <div className="space-y-2">
+            {members.map((m) => (
+              <div key={m.user_id} className="flex items-center justify-between rounded-xl border p-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{m.user_id}</div>
+                  <div className="text-xs text-muted-foreground">{m.role === 'owner' ? 'オーナー' : 'メンバー'}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{m.approved ? '承認済み' : '未承認'}</span>
+                  <Button
+                    variant={m.approved ? 'secondary' : 'default'}
+                    onClick={() => toggleApprove(m.user_id, !m.approved)}
+                    className="h-8"
+                  >
+                    {m.approved ? '承認を取り消す' : '承認する'}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">オーナーのみ操作できます。</p>
+      </Card>
+      </div>
     </main>
   )
 }

@@ -57,13 +57,39 @@ export function SheetTrigger({ asChild = false, children }: { asChild?: boolean;
 
 export function SheetContent({ className, children }: { className?: string; children: React.ReactNode }) {
   const { open, setOpen } = useSheet()
-  if (!open) return null
+  const [isVisible, setIsVisible] = React.useState(false)
+  
+  React.useEffect(() => {
+    if (open) {
+      setIsVisible(true)
+      // 開く際は少し遅延を入れてアニメーションを確実に見せる
+      setTimeout(() => setIsAnimating(true), 10)
+    } else {
+      setIsAnimating(false)
+      // 閉じるアニメーション後に非表示
+      const timeout = setTimeout(() => setIsVisible(false), 500)
+      return () => clearTimeout(timeout)
+    }
+  }, [open])
+  
+  const [isAnimating, setIsAnimating] = React.useState(false)
+  
+  if (!isVisible) return null
+  
   return (
     <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+      <div 
+        className={cn(
+          "absolute inset-0 bg-black/40 transition-opacity duration-500",
+          isAnimating ? "opacity-100" : "opacity-0"
+        )} 
+        onClick={() => setOpen(false)} 
+      />
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 w-full rounded-t-2xl border bg-background text-foreground shadow-xl",
+          "transform transition-transform duration-500 ease-out",
+          isAnimating ? "translate-y-0" : "translate-y-full",
           className,
         )}
         role="dialog"

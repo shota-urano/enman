@@ -1,55 +1,48 @@
 import { createSupabaseAdmin } from '@/server/clients/supabase'
 
-export type Household = {
-  id: string
-  name: string
+export type HouseholdMember = {
+  user_id: string
+  role: 'owner' | 'member'
+  approved: boolean
+  joined_at: string | null
+  created_at: string
 }
 
 export const householdsRepository = {
-  async create(userId: string, name: string): Promise<Household> {
+  async listMembers(householdId: string): Promise<HouseholdMember[]> {
     const supabase = createSupabaseAdmin()
-
-    // Insert household
-    const { data: hh, error: err1 } = await supabase
-      .from('households')
-      .insert({ name, created_by: userId })
-      .select('id, name')
-      .single()
-
-    if (err1) throw err1
-    if (!hh) throw new Error('Failed to create household')
-
-    // Link creator as owner member
-    const { error: err2 } = await supabase
+    const { data, error } = await supabase
       .from('household_members')
-      .insert({
-        household_id: hh.id,
-        user_id: userId,
-        role: 'owner',
-        joined_at: new Date().toISOString(),
-      })
-
-    if (err2) throw err2
-
-    return { id: hh.id, name: hh.name }
-  },
-
-  async join(userId: string, householdId: string): Promise<void> {
-    const supabase = createSupabaseAdmin()
-    // Upsert to avoid duplicate unique (household_id, user_id) violation
-    const { error } = await supabase
-      .from('household_members')
-      .upsert(
-        {
-          household_id: householdId,
-          user_id: userId,
-          role: 'member',
-          joined_at: new Date().toISOString(),
-        },
-        { onConflict: 'household_id,user_id', ignoreDuplicates: true },
-      )
-
+      .select('user_id, role, approved, joined_at, created_at')
+      .eq('household_id', householdId)
+      .order('role', { ascending: true })
+      .order('created_at', { ascending: true })
     if (error) throw error
+    return (data ?? []) as HouseholdMember[]
+  },
+  async setApproved(householdId: string, userId: string, approved: boolean): Promise<HouseholdMember> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('household_members')
+      .update({ approved })
+      .eq('household_id', householdId)
+      .eq('user_id', userId)
+      .select('user_id, role, approved, joined_at, created_at')
+      .single()
+    if (error) throw error
+    if (!data) throw new Error('Failed to update approval')
+    return data as HouseholdMember
+  },
+  async isOwner(householdId: string, userId: string): Promise<boolean> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('household_members')
+      .select('role')
+      .eq('household_id', householdId)
+      .eq('user_id', userId)
+      .single()
+    if (error) throw error
+    return (data?.role as string) === 'owner'
   },
 }
 

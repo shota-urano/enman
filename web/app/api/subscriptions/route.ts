@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       throw badRequest(message, parsed.error)
     }
 
-    const created = await subscriptionsRepository.create(session.householdId!, parsed.data)
+    const created = await subscriptionsRepository.create(session.householdId!, parsed.data, session.userId)
     return NextResponse.json(created, { status: 201 })
   } catch (e: unknown) {
     const err = normalizeError(e)

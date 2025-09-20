@@ -45,9 +45,31 @@ export function systemError(message = 'System Error', details?: unknown) {
 
 export function normalizeError(e: unknown): AppError {
   if (e instanceof AppError) return e
-  // Surface PostgREST or Supabase errors where possible
-  const message = e instanceof Error ? e.message : String(e)
-  return systemError(message)
+
+  // Surface PostgREST/Supabase or plain-object errors where possible
+  if (e && typeof e === 'object') {
+    const anyErr = e as { message?: unknown; code?: unknown; status?: unknown }
+    const msg = typeof anyErr.message === 'string' ? anyErr.message : undefined
+    if (msg) {
+      // Attach original object to details for debugging
+      return systemError(msg, e)
+    }
+  }
+
+  // Fallbacks: native Error, string, or stringify unknown
+  const message =
+    e instanceof Error
+      ? e.message
+      : typeof e === 'string'
+        ? e
+        : (() => {
+            try {
+              return JSON.stringify(e)
+            } catch {
+              return String(e)
+            }
+          })()
+  return systemError(message, e)
 }
 
 export function toErrorBody(e: AppError) {

@@ -101,7 +101,7 @@ describe('PATCH /api/transactions/:id', () => {
     expect(transactionsRepository.update).toHaveBeenCalledWith('h-1', 't-1', {
       amount: 3000,
       memo: 'updated memo',
-    })
+    }, 'u-1')
   })
 })
 

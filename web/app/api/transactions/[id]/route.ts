@@ -24,8 +24,27 @@ export async function PATCH(
       session.householdId!,
       id,
       parsed.data,
+      session.userId,
+      { accessToken: session.token },
     )
     return NextResponse.json(updated, { status: 200 })
+  } catch (e: unknown) {
+    const err = normalizeError(e)
+    return NextResponse.json(toErrorBody(err), { status: err.status })
+  }
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const session = await getSession(req)
+    await assertHouseholdMember(session)
+
+    const { id } = await params
+    const tx = await transactionsRepository.getById(session.householdId!, id)
+    return NextResponse.json(tx, { status: 200 })
   } catch (e: unknown) {
     const err = normalizeError(e)
     return NextResponse.json(toErrorBody(err), { status: err.status })
@@ -41,7 +60,7 @@ export async function DELETE(
     await assertHouseholdMember(session)
 
     const { id } = await params
-    await transactionsRepository.remove(session.householdId!, id)
+    await transactionsRepository.remove(session.householdId!, id, { accessToken: session.token })
     return new NextResponse(null, { status: 204 })
   } catch (e: unknown) {
     const err = normalizeError(e)

@@ -74,10 +74,10 @@ export default function SetupPage() {
         </form>
       </section>
       <section>
-        <h2 className="mb-4 text-xl font-semibold">招待トークンで参加</h2>
+        <h2 className="mb-4 text-xl font-semibold">招待コードで参加</h2>
         <form onSubmit={joinHousehold} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm">招待トークン</label>
+            <label className="mb-1 block text-sm">招待コード</label>
             <Input value={token} onChange={(e) => setToken(e.target.value)} required />
           </div>
           <Button type="submit" disabled={loadingJoin}>

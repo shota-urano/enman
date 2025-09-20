@@ -37,14 +37,30 @@ export async function getSession(req: NextRequest): Promise<Session> {
   if (error || !data?.user) throw unauthorized('Invalid session')
 
   // Optionally receive household scope from header (API レイヤでの二重化用)
-  const householdId = req.headers.get('x-household-id') || undefined
-  const roleHeader = req.headers.get('x-household-role') as Session['role'] | null
+  let householdId = req.headers.get('x-household-id') || undefined
+  let role: Session['role'] | undefined =
+    (req.headers.get('x-household-role') as Session['role'] | null) ?? undefined
+
+  // Fallback: ヘッダーに household が無ければ DB のメンバーシップから一意に決定
+  if (!householdId) {
+    const { data: memberships, error: mErr } = await supabase
+      .from('household_members')
+      .select('household_id, role, joined_at, created_at')
+      .eq('user_id', data.user.id)
+      .order('joined_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+
+    if (!mErr && memberships && memberships.length === 1) {
+      householdId = memberships[0].household_id as string
+      role = (memberships[0].role as Session['role']) ?? role
+    }
+  }
 
   return {
     userId: data.user.id,
     email: data.user.email ?? undefined,
     householdId,
-    role: roleHeader ?? undefined,
+    role,
     token,
   }
 }

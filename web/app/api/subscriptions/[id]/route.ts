@@ -24,6 +24,7 @@ export async function PATCH(
       session.householdId!,
       id,
       parsed.data,
+      session.userId,
     )
     return NextResponse.json(updated, { status: 200 })
   } catch (e: unknown) {

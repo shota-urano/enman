@@ -13,6 +13,7 @@ function get(name: string, required = false): string | undefined {
 export const serverEnv = {
   SUPABASE_URL: get("SUPABASE_URL"),
   SUPABASE_SERVICE_ROLE: get("SUPABASE_SERVICE_ROLE"),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: get("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   MCP_ENDPOINT: get("MCP_ENDPOINT"),
   MCP_AUTH_TOKEN: get("MCP_AUTH_TOKEN"),
   INVITE_SECRET: get("INVITE_SECRET"),

@@ -166,11 +166,23 @@ export default function TransactionForm() {
   }, [categories, draft.kind])
 
   return (
-    <Card className="max-w-xl mx-auto">
-      <CardHeader>
-        <h2 className="text-lg font-semibold">取引登録</h2>
+    <Card
+      className="max-w-2xl mx-auto border-0 rounded-3xl p-0 overflow-hidden flex flex-col"
+      style={{
+        background: 'linear-gradient(145deg, #f8fafc, #ffffff)',
+        boxShadow: '20px 20px 60px #e2e8f0, -20px -20px 60px #ffffff',
+        // Keep the card fully visible above the LumaBar and safe area (use dvh for mobile)
+        maxHeight: 'calc(100dvh - (env(safe-area-inset-bottom) + 150px))'
+      }}
+    >
+      <CardHeader className="rounded-t-3xl p-6 border-0">
+        <div className="text-xl font-bold text-gray-800">取引登録</div>
+        <div className="text-sm text-gray-600 mt-1">日々の入出金を記録して、支出管理に役立てましょう</div>
       </CardHeader>
-      <CardBody>
+      <CardBody
+        className="p-6 sm:p-8 overflow-auto overscroll-contain"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 120px)' }}
+      >
         {error && (
           <div className="mb-3 text-red-600 text-sm" role="alert">
             {error}
@@ -181,90 +193,159 @@ export default function TransactionForm() {
             {okMsg}
           </div>
         )}
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="grid gap-6 grid-cols-1 sm:grid-cols-2">
           <div>
-            <label className="block text-sm mb-1">種別</label>
-            <Select
-              value={draft.kind}
-              onChange={(e) => update('kind', e.target.value as Kind)}
+            <label className="text-sm font-medium text-gray-700">種別</label>
+            <div
+              className="mt-2"
+              style={{
+                background: '#f0f0f0',
+                boxShadow: 'inset 8px 8px 16px #d0d0d0, inset -8px -8px 16px #ffffff',
+                borderRadius: '1rem'
+              }}
             >
-              <option value="expense">支出</option>
-              <option value="income">収入</option>
-            </Select>
+              <Select
+                value={draft.kind}
+                onChange={(value) => update('kind', value as Kind)}
+                appearance="inset"
+                variant="neumorphic"
+                className="rounded-2xl bg-transparent"
+                options={[
+                  { value: "expense", label: "支出" },
+                  { value: "income", label: "収入" }
+                ]}
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm mb-1">日付</label>
-            <DatePicker
-              value={draft.occurred_on}
-              onChange={(e) => update('occurred_on', e.target.value)}
-            />
+            <label className="text-sm font-medium text-gray-700">日付</label>
+            <div className="relative mt-2">
+              <DatePicker
+                value={draft.occurred_on}
+                onChange={(e) => update('occurred_on', e.target.value)}
+                className="border-0 rounded-2xl px-4 py-3 w-full"
+                style={{
+                  background: '#f0f0f0',
+                  boxShadow: 'inset 8px 8px 16px #d0d0d0, inset -8px -8px 16px #ffffff'
+                }}
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm mb-1">金額</label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              placeholder="0"
-              value={draft.amount}
-              onChange={(e) => update('amount', e.target.value)}
-            />
+            <label className="text-sm font-medium text-gray-700">金額</label>
+            <div className="relative mt-2">
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder="0"
+                value={draft.amount}
+                onChange={(e) => update('amount', e.target.value)}
+                className="border-0 rounded-2xl px-4 py-3 w-full pr-10"
+                style={{
+                  background: '#f0f0f0',
+                  boxShadow: 'inset 8px 8px 16px #d0d0d0, inset -8px -8px 16px #ffffff'
+                }}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">円</span>
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm mb-1">カテゴリ</label>
-            <Select
-              value={draft.category_id}
-              onChange={(e) => update('category_id', e.target.value)}
+            <label className="text-sm font-medium text-gray-700">カテゴリ</label>
+            <div
+              className="mt-2"
+              style={{
+                background: '#f0f0f0',
+                boxShadow: 'inset 8px 8px 16px #d0d0d0, inset -8px -8px 16px #ffffff',
+                borderRadius: '1rem'
+              }}
             >
-              <option value="">選択してください</option>
-              {filteredCategories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </Select>
+              <Select
+                value={draft.category_id}
+                onChange={(value) => update('category_id', value)}
+                appearance="inset"
+                variant="neumorphic"
+                className="rounded-2xl bg-transparent"
+                options={[
+                  { value: "", label: "選択してください" },
+                  ...filteredCategories.map((c) => ({ value: c.id, label: c.name }))
+                ]}
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm mb-1">アカウント</label>
-            <Select
-              value={draft.account_id}
-              onChange={(e) => update('account_id', e.target.value)}
+            <label className="text-sm font-medium text-gray-700">アカウント</label>
+            <div
+              className="mt-2"
+              style={{
+                background: '#f0f0f0',
+                boxShadow: 'inset 8px 8px 16px #d0d0d0, inset -8px -8px 16px #ffffff',
+                borderRadius: '1rem'
+              }}
             >
-              <option value="">選択してください</option>
-              {accounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </Select>
+              <Select
+                value={draft.account_id}
+                onChange={(value) => update('account_id', value)}
+                appearance="inset"
+                variant="neumorphic"
+                className="rounded-2xl bg-transparent"
+                options={[
+                  { value: "", label: "選択してください" },
+                  ...accounts.map((a) => ({ value: a.id, label: a.name }))
+                ]}
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm mb-1">利用場所（任意）</label>
+          <div className="sm:col-span-2">
+            <label className="text-sm font-medium text-gray-700">利用場所（任意）</label>
             <Input
               placeholder="店名など"
               value={draft.place}
               onChange={(e) => update('place', e.target.value)}
+              className="border-0 rounded-2xl px-4 py-3 mt-2 w-full"
+              style={{
+                background: '#f0f0f0',
+                boxShadow: 'inset 8px 8px 16px #d0d0d0, inset -8px -8px 16px #ffffff'
+              }}
             />
           </div>
 
-          <div>
-            <label className="block text-sm mb-1">メモ（任意）</label>
+          <div className="sm:col-span-2">
+            <label className="text-sm font-medium text-gray-700">メモ（任意）</label>
             <Input
               placeholder="メモ"
               value={draft.memo}
               onChange={(e) => update('memo', e.target.value)}
+              className="border-0 rounded-2xl px-4 py-3 mt-2 w-full"
+              style={{
+                background: '#f0f0f0',
+                boxShadow: 'inset 8px 8px 16px #d0d0d0, inset -8px -8px 16px #ffffff'
+              }}
             />
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
-            <Button type="submit" disabled={submitting}>
+          <div className="sm:col-span-2 flex flex-col sm:flex-row gap-3 justify-end pt-4">
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-2xl border-0 transition-all duration-200 w-full sm:w-auto"
+              style={{
+                background: submitting
+                  ? 'linear-gradient(145deg, #e0e0e0, #f0f0f0)'
+                  : 'linear-gradient(145deg, #3b82f6, #2563eb)',
+                boxShadow: submitting
+                  ? 'inset 5px 5px 10px #d0d0d0, inset -5px -5px 10px #ffffff'
+                  : '8px 8px 16px #2563eb40, -8px -8px 16px #ffffff40',
+                color: submitting ? '#9ca3af' : 'white'
+              }}
+            >
               {submitting ? '登録中…' : '登録する'}
             </Button>
-            <span className="text-xs text-gray-500">
+            <span className="self-center text-xs text-gray-500">
               {saving ? '下書き保存中…' : '下書き自動保存'}
             </span>
           </div>

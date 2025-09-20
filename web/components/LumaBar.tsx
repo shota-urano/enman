@@ -1,20 +1,22 @@
 "use client"
 import * as React from "react"
-import { Home, Bell, Settings } from "lucide-react"
+import { Home, Bell, Settings, CalendarDays, BarChart3, Repeat, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export type LumaBarProps = {
-  current?: "home" | "alerts" | "settings"
+  current?: "home" | "calendar" | "reports" | "subscriptions" | "new" | "alerts" | "settings"
   onNavigate?: (to: NonNullable<LumaBarProps["current"]>) => void
   className?: string
+  badges?: Partial<Record<NonNullable<LumaBarProps["current"]>, number>>
 }
 
-export default function LumaBar({ current = "home", onNavigate, className }: LumaBarProps) {
+export default function LumaBar({ current = "home", onNavigate, className, badges }: LumaBarProps) {
   const Item = (
     props: {
       id: NonNullable<LumaBarProps["current"]>
       icon: React.ReactNode
       label: string
+      prominent?: boolean
     },
   ) => (
     <button
@@ -22,20 +24,45 @@ export default function LumaBar({ current = "home", onNavigate, className }: Lum
       aria-current={current === props.id ? "page" : undefined}
       onClick={() => onNavigate?.(props.id)}
       className={cn(
-        "flex size-14 items-center justify-center rounded-full bg-background text-foreground border",
-        current === props.id ? "shadow-md" : "opacity-80 hover:opacity-100",
+        "relative flex flex-col items-center justify-center rounded-full text-foreground",
+        props.prominent
+          ? "h-16 w-16 md:h-[72px] md:w-[72px]"
+          : "h-12 w-12 md:h-14 md:w-14",
+        current === props.id
+          ? "bg-primary/60 text-foreground shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+          : "opacity-90 hover:opacity-100 bg-background border",
       )}
     >
-      {props.icon}
+      <span className={cn(current === props.id ? "text-foreground" : "text-foreground/80")}>{props.icon}</span>
+      <span
+        className={cn(
+          // smaller label and prevent wrapping
+          "mt-0.5 text-[9px] md:text-[10px] leading-none whitespace-nowrap",
+          current === props.id ? "text-foreground" : "text-muted-foreground",
+        )}
+      >
+        {props.label}
+      </span>
+      {props.id === "alerts" && (badges?.alerts ?? 0) > 0 && (
+        <span className="absolute -top-1 -right-1 inline-flex min-w-4 h-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+          {Math.min(badges!.alerts!, 99)}
+        </span>
+      )}
     </button>
   )
 
   return (
-    <nav className={cn("fixed bottom-6 left-1/2 z-50 -translate-x-1/2", className)} aria-label="メインナビゲーション">
-      <div className="flex items-center gap-4 rounded-full border bg-card px-4 py-3 shadow-lg">
-        <Item id="home" icon={<Home className="size-5" />} label="ホーム" />
-        <Item id="alerts" icon={<Bell className="size-5" />} label="通知" />
-        <Item id="settings" icon={<Settings className="size-5" />} label="設定" />
+    <nav className={cn("fixed inset-x-3 bottom-4 z-50 pb-[env(safe-area-inset-bottom)]", className)} aria-label="メインナビゲーション">
+      <div className="mx-auto w-full max-w-[720px] rounded-full border border-border/60 bg-card/80 backdrop-blur-xl px-3 py-2 md:px-4 md:py-3 shadow-lg overflow-x-auto overscroll-x-contain">
+        <div className="flex items-center justify-between gap-3 md:gap-4">
+          <Item id="home" icon={<Home className="size-5" />} label="ホーム" />
+          <Item id="calendar" icon={<CalendarDays className="size-5" />} label="カレンダー" />
+          <Item id="reports" icon={<BarChart3 className="size-5" />} label="レポート" />
+          <Item id="new" icon={<Plus className="size-6" />} label="追加" prominent />
+          <Item id="subscriptions" icon={<Repeat className="size-5" />} label="サブスク" />
+          <Item id="alerts" icon={<Bell className="size-5" />} label="通知" />
+          <Item id="settings" icon={<Settings className="size-5" />} label="設定" />
+        </div>
       </div>
     </nav>
   )

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import AppHeader from "@/components/AppHeader";
 
 type Category = {
   id: string;
@@ -144,12 +145,13 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" className="border px-3" onClick={prevMonth}>&lt;</Button>
-        <h1 className="text-xl font-semibold">月次サマリー: {monthKey}</h1>
-        <Button variant="ghost" className="border px-3" onClick={nextMonth}>&gt;</Button>
-      </div>
+    <div>
+      <AppHeader
+        title={`月次サマリー ${monthKey}`}
+        left={<Button aria-label="前の月" variant="ghost" className="h-9 px-3" onClick={prevMonth}>&lt;</Button>}
+        right={<Button aria-label="次の月" variant="ghost" className="h-9 px-3" onClick={nextMonth}>&gt;</Button>}
+      />
+      <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6 shadow-inner rounded-xl bg-background/50">
 
       {loading && <Card className="p-6 text-sm text-muted-foreground">読み込み中...</Card>}
       {error && <Card className="p-6 text-sm text-red-500">{error}</Card>}
@@ -160,10 +162,10 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Pie (Expense composition) */}
             <Card className="p-4">
-              <div className="text-sm font-medium mb-3">支出カテゴリ内訳（円グラフ）</div>
+              <div className="text-sm font-medium mb-3 p-2 rounded-lg shadow-neumorphic-soft bg-card/30">支出カテゴリ内訳（円グラフ）</div>
               <div className="flex items-center gap-6">
                 <div
-                  className="w-48 h-48 rounded-full border"
+                  className="w-48 h-48 rounded-full shadow-neumorphic"
                   style={pieStyle}
                   aria-label="Expense pie chart"
                 />
@@ -174,13 +176,20 @@ export default function ReportsPage() {
                   {expenseTotals.map((t, i) => (
                     <div
                       key={t.category_id}
-                      className={`flex items-center gap-2 ${hoverCatId === t.category_id ? "font-semibold" : ""}`}
+                      className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${
+                        hoverCatId === t.category_id 
+                          ? "font-semibold shadow-neumorphic-soft bg-card/50" 
+                          : "hover:shadow-neumorphic-soft hover:bg-card/30"
+                      }`}
                       onMouseEnter={() => setHoverCatId(t.category_id)}
                       onMouseLeave={() => setHoverCatId((id) => (id === t.category_id ? null : id))}
                     >
-                      <span className="inline-block w-3 h-3 rounded-sm" style={{ background: chartColors[i % chartColors.length] }} />
+                      <span 
+                        className="inline-block w-3 h-3 rounded-sm shadow-neumorphic-soft" 
+                        style={{ background: chartColors[i % chartColors.length] }} 
+                      />
                       <span className="truncate max-w-[200px]">{t.name}</span>
-                      <span className="ml-auto tabular-nums">{t.expense}</span>
+                      <span className="ml-auto tabular-nums font-mono">{t.expense}</span>
                     </div>
                   ))}
                 </div>
@@ -189,7 +198,7 @@ export default function ReportsPage() {
 
             {/* Bars (Category totals) */}
             <Card className="p-4">
-              <div className="text-sm font-medium mb-3">カテゴリ別金額（棒グラフ）</div>
+              <div className="text-sm font-medium mb-3 p-2 rounded-lg shadow-neumorphic-soft bg-card/30">カテゴリ別金額（棒グラフ）</div>
               <div className="space-y-2">
                 {expenseTotals.length === 0 && incomeTotals.length === 0 && (
                   <div className="text-xs text-muted-foreground">データがありません</div>
@@ -202,14 +211,16 @@ export default function ReportsPage() {
                   );
                   const val = t.expense > 0 ? t.expense : t.income;
                   const pct = Math.round((val / max) * 100);
-                  const color = t.expense > 0 ? "#dc2626" : "#059669"; // red/green
+                  const color = t.expense > 0 ? "var(--destructive)" : "var(--success)"; // pastel error/success
                   const highlighted = hoverCatId === t.category_id;
                   return (
                     <div key={`${t.category_id}-${i}`} className="flex items-center gap-2">
                       <div className="w-40 text-xs truncate" title={t.name}>{t.name}</div>
-                      <div className="flex-1 h-4 bg-muted rounded">
+                      <div className="flex-1 h-4 bg-muted rounded shadow-inner">
                         <div
-                          className={`h-4 rounded transition-all ${highlighted ? "ring-2 ring-offset-1" : ""}`}
+                          className={`h-4 rounded transition-all shadow-neumorphic-soft ${
+                            highlighted ? "shadow-neumorphic-hover scale-105" : "hover:shadow-neumorphic"
+                          }`}
                           style={{ width: `${pct}%`, background: color }}
                           onMouseEnter={() => setHoverCatId(t.category_id)}
                           onMouseLeave={() => setHoverCatId((id) => (id === t.category_id ? null : id))}
@@ -225,15 +236,15 @@ export default function ReportsPage() {
 
           {/* Table */}
           <Card className="p-4">
-            <div className="text-sm font-medium mb-3">カテゴリ別サマリー</div>
+            <div className="text-sm font-medium mb-3 p-2 rounded-lg shadow-neumorphic-soft bg-card/30">カテゴリ別サマリー</div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs text-muted-foreground">
-                  <tr>
-                    <th className="py-2 pr-2">カテゴリ</th>
-                    <th className="py-2 pr-2 text-right">収入</th>
-                    <th className="py-2 pr-2 text-right">支出</th>
-                    <th className="py-2 pr-2 text-right">差分</th>
+                  <tr className="shadow-neumorphic-soft rounded-lg overflow-hidden">
+                    <th className="py-3 pr-2 px-3 bg-card rounded-l-lg">カテゴリ</th>
+                    <th className="py-3 pr-2 px-3 bg-card text-right">収入</th>
+                    <th className="py-3 pr-2 px-3 bg-card text-right">支出</th>
+                    <th className="py-3 pr-2 px-3 bg-card text-right rounded-r-lg">差分</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -253,19 +264,22 @@ export default function ReportsPage() {
                       return (
                         <tr
                           key={t.category_id}
-                          className={highlighted ? "bg-muted/60" : ""}
+                          className={`${highlighted ? "shadow-neumorphic-soft bg-card" : "hover:shadow-neumorphic-soft hover:bg-card"} transition-all duration-200`}
                           onMouseEnter={() => setHoverCatId(t.category_id)}
                           onMouseLeave={() => setHoverCatId((id) => (id === t.category_id ? null : id))}
                         >
                           <td className="py-1 pr-2">
                             <div className="flex items-center gap-2">
-                              <span className="inline-block w-3 h-3 rounded-sm" style={{ background: chartColors[i % chartColors.length] }} />
+                              <span 
+                                className="inline-block w-3 h-3 rounded-sm shadow-neumorphic-soft" 
+                                style={{ background: chartColors[i % chartColors.length] }} 
+                              />
                               <span>{t.name}</span>
                             </div>
                           </td>
-                          <td className="py-1 pr-2 text-right tabular-nums text-emerald-700">{t.income}</td>
-                          <td className="py-1 pr-2 text-right tabular-nums text-red-600">{t.expense}</td>
-                          <td className={`py-1 pr-2 text-right tabular-nums ${diff < 0 ? "text-red-600" : "text-emerald-700"}`}>{diff}</td>
+                          <td className="py-1 pr-2 text-right tabular-nums" style={{ color: 'var(--success)' }}>{t.income}</td>
+                          <td className="py-1 pr-2 text-right tabular-nums" style={{ color: 'var(--destructive)' }}>{t.expense}</td>
+                          <td className="py-1 pr-2 text-right tabular-nums" style={{ color: diff < 0 ? 'var(--destructive)' : 'var(--success)' }}>{diff}</td>
                         </tr>
                       );
                     })}
@@ -275,6 +289,7 @@ export default function ReportsPage() {
           </Card>
         </>
       )}
+      </div>
     </div>
   );
 }

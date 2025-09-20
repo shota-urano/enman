@@ -1,9 +1,12 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
+import AppHeader from "@/components/AppHeader";
 
 type DailyTotalsItem = {
   date: string; // YYYY-MM-DD
@@ -12,12 +15,27 @@ type DailyTotalsItem = {
   net_total: number;
 };
 
+type PendingConfirmItem = {
+  day: string; // YYYY-MM-DD
+  pending_count: number;
+};
+
+type PendingConfirmDetailItem = {
+  id: string;
+  name: string;
+  expected_amount: number;
+  billing_day: number;
+  occurred_on: string;
+};
+
 type TxItem = {
   id: string;
   date: string;
   amount: number;
   type: "income" | "expense";
   category_name?: string;
+  account_name?: string;
+  place?: string;
   memo?: string;
 };
 
@@ -69,15 +87,18 @@ function getCalendarMatrix(base: Date) {
 }
 
 export default function CalendarPage() {
+  const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
   const [data, setData] = useState<DailyTotalsItem[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingConfirmItem[] | null>(null);
 
   const [detailDate, setDetailDate] = useState<string | null>(null);
   const [txLoading, setTxLoading] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
   const [txList, setTxList] = useState<TxItem[] | null>(null);
+  const [pendingList, setPendingList] = useState<PendingConfirmDetailItem[] | null>(null);
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
   const [reactionsMap, setReactionsMap] = useState<Record<string, ReactionItem[]>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
@@ -89,19 +110,62 @@ export default function CalendarPage() {
     setLoading(true);
     setError(null);
     setData(null);
-    fetch(`/api/reports/daily-totals?month=${monthKey}`)
+    const totalsPromise = fetch(`/api/reports/daily-totals?month=${monthKey}`)
       .then(async (r) => {
         if (!r.ok) throw await r.json();
         return r.json();
       })
       .then((json) => {
-        if (!aborted) setData(json as DailyTotalsItem[]);
+        if (aborted) return;
+        const rows: unknown[] = Array.isArray(json) ? json : [];
+        const normalized: DailyTotalsItem[] = rows
+          .map((it: any) => {
+            const date: string | undefined = it?.date ?? it?.day;
+            const income = typeof it?.income_total === 'number'
+              ? it.income_total
+              : typeof it?.income === 'number'
+                ? it.income
+                : 0;
+            const expense = typeof it?.expense_total === 'number'
+              ? it.expense_total
+              : typeof it?.expense === 'number'
+                ? it.expense
+                : 0;
+            const net = typeof it?.net_total === 'number'
+              ? it.net_total
+              : (income - expense);
+            if (!date) return null;
+            return { date, income_total: income, expense_total: expense, net_total: net } as DailyTotalsItem;
+          })
+          .filter((v): v is DailyTotalsItem => !!v);
+        setData(normalized);
       })
       .catch((e) => {
         if (aborted) return;
         const msg = typeof e?.message === "string" ? e.message : "データ取得に失敗しました";
         setError(msg);
+      });
+
+    const pendingPromise = fetch(`/api/reports/pending-confirms?month=${monthKey}`)
+      .then(async (r) => {
+        if (!r.ok) throw await r.json();
+        return r.json();
       })
+      .then((json) => {
+        if (aborted) return;
+        const rows: unknown[] = Array.isArray(json) ? json : [];
+        const normalized: PendingConfirmItem[] = rows
+          .map((it: any) => ({ day: it?.day, pending_count: Number(it?.pending_count ?? 0) }))
+          .filter((v): v is PendingConfirmItem => !!v.day);
+        setPending(normalized);
+      })
+      .catch((_e) => {
+        if (aborted) return;
+        // pendingは非致命、無視
+        setPending([]);
+      });
+
+    Promise.allSettled([totalsPromise, pendingPromise])
       .finally(() => {
         if (!aborted) setLoading(false);
       });
@@ -116,7 +180,24 @@ export default function CalendarPage() {
     return map;
   }, [data]);
 
+  const pendingByDate = useMemo(() => {
+    const map = new Map<string, number>();
+    (pending ?? []).forEach((it) => map.set(it.day, it.pending_count));
+    return map;
+  }, [pending]);
+
   const weeks = useMemo(() => getCalendarMatrix(currentMonth), [currentMonth]);
+
+  // 月の合計データを計算
+  const monthlySummary = useMemo(() => {
+    if (!data) return { totalIncome: 0, totalExpense: 0, netTotal: 0 };
+    
+    const totalIncome = data.reduce((sum, item) => sum + item.income_total, 0);
+    const totalExpense = data.reduce((sum, item) => sum + item.expense_total, 0);
+    const netTotal = totalIncome - totalExpense;
+    
+    return { totalIncome, totalExpense, netTotal };
+  }, [data]);
 
   function prevMonth() {
     setCurrentMonth((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
@@ -130,9 +211,10 @@ export default function CalendarPage() {
     setTxLoading(true);
     setTxError(null);
     setTxList(null);
+    setPendingList(null);
     setCommentsMap({});
     setReactionsMap({});
-    fetch(`/api/transactions?date=${dateStr}`)
+    const txPromise = fetch(`/api/transactions?date=${dateStr}`)
       .then(async (r) => {
         if (!r.ok) throw await r.json();
         return r.json();
@@ -161,8 +243,16 @@ export default function CalendarPage() {
       .catch((e) => {
         const msg = typeof e?.message === "string" ? e.message : "明細取得に失敗しました";
         setTxError(msg);
+      });
+
+    const pendingPromise = fetch(`/api/reports/pending-confirms/day?date=${dateStr}`)
+      .then(async (r) => (r.ok ? r.json() : []))
+      .then((json) => {
+        setPendingList(Array.isArray(json) ? (json as PendingConfirmDetailItem[]) : []);
       })
-      .finally(() => setTxLoading(false));
+      .catch(() => setPendingList([]));
+
+    Promise.allSettled([txPromise, pendingPromise]).finally(() => setTxLoading(false));
   }
 
   async function addComment(txId: string) {
@@ -224,66 +314,142 @@ export default function CalendarPage() {
   const monthTitle = `${currentMonth.getFullYear()}年 ${currentMonth.getMonth() + 1}月`;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
-        <Button variant="ghost" className="border px-3" onClick={prevMonth}>&lt;</Button>
-        <h1 className="text-xl font-semibold">{monthTitle}</h1>
-        <Button variant="ghost" className="border px-3" onClick={nextMonth}>&gt;</Button>
-      </div>
+    <div>
+      <AppHeader
+        title={monthTitle}
+        left={<Button aria-label="前の月" variant="ghost" className="h-9 px-3" onClick={prevMonth}>&lt;</Button>}
+        right={<Button aria-label="次の月" variant="ghost" className="h-9 px-3" onClick={nextMonth}>&gt;</Button>}
+      />
+      <div className="p-4 md:p-6 max-w-5xl mx-auto bg-gray-100 min-h-screen">
 
       {loading && (
-        <Card className="p-6 text-sm text-muted-foreground">読み込み中...</Card>
+        <div className="p-6 text-sm text-gray-600 bg-gray-100 rounded-2xl shadow-inner">読み込み中...</div>
       )}
       {error && (
-        <Card className="p-6 text-sm text-red-500">{error}</Card>
+        <div className="p-6 text-sm text-red-600 bg-gray-100 rounded-2xl shadow-inner">{error}</div>
       )}
       {!loading && !error && (
         <div>
+          {/* 月間サマリー - 表形式 */}
+          <div className="mb-6 bg-gray-100 rounded-3xl p-6 shadow-neumorphic">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              {/* タイトル行 */}
+              <div className="text-sm text-gray-500">今月のサマリー</div>
+              <div className="text-sm text-gray-500">収入</div>
+              <div className="text-sm text-gray-500">支出</div>
+              
+              {/* データ行 */}
+              <div className={`text-2xl sm:text-3xl font-bold ${
+                monthlySummary.netTotal >= 0 ? 'text-green-600' : 'text-red-500'
+              }`}>
+                {monthlySummary.netTotal.toLocaleString()}
+              </div>
+              <div className="text-2xl sm:text-3xl font-bold text-green-600">
+                +{monthlySummary.totalIncome.toLocaleString()}
+              </div>
+              <div className="text-2xl sm:text-3xl font-bold text-red-500">
+                -{monthlySummary.totalExpense.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-7 gap-2 mb-2 text-center text-xs text-muted-foreground">
             {["日","月","火","水","木","金","土"].map((d) => (
               <div key={d}>{d}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-3 bg-gray-100 rounded-3xl p-6 shadow-neumorphic">
             {weeks.flat().map((cell, idx) => {
-              if (!cell) return <div key={idx} className="h-24"/>;
+              if (!cell) return <div key={idx} className="h-16 sm:h-20"/>;
               const yyyy = cell.getFullYear();
               const mm = `${cell.getMonth() + 1}`.padStart(2, "0");
               const dd = `${cell.getDate()}`.padStart(2, "0");
               const key = `${yyyy}-${mm}-${dd}`;
               const t = totalsByDate.get(key);
-              const expense = t?.expense_total ?? 0;
-              const income = t?.income_total ?? 0;
+              const hasData = !!t && (t.income_total > 0 || t.expense_total > 0);
+              const isToday = new Date().toDateString() === cell.toDateString();
+              const pendingCount = pendingByDate.get(key) ?? 0;
+              
               return (
-                <Card key={idx} className="h-24 p-2 cursor-pointer hover:ring-2 hover:ring-primary/40"
-                  onClick={() => openDetail(key)}>
-                  <div className="flex items-start justify-between">
-                    <div className="text-xs text-muted-foreground">{cell.getDate()}</div>
-                    {t && (
-                      <span className={`text-[10px] font-medium ${t.net_total < 0 ? "text-red-600" : "text-emerald-600"}`}>
-                        {t.net_total}
-                      </span>
+                <div key={idx} 
+                  className="h-16 sm:h-20 relative cursor-pointer transition-all duration-300 flex flex-col items-center justify-center p-2"
+                  onClick={() => {
+                    if (hasData) {
+                      openDetail(key)
+                    } else if (pendingCount > 0) {
+                      router.push(`/notifications?date=${key}`)
+                    }
+                  }}>
+                  
+                  {/* 日付 - ニューモルフィック背景付き */}
+                  <div className="relative flex flex-col items-center">
+                    <div className={`
+                      w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-sm sm:text-base font-medium transition-all duration-300
+                      ${isToday 
+                        ? 'bg-gray-100 text-blue-600 shadow-neumorphic-pressed' 
+                        : hasData 
+                          ? 'bg-gray-100 text-gray-700 shadow-neumorphic hover:shadow-neumorphic-hover' 
+                          : cell.getMonth() !== currentMonth.getMonth()
+                            ? 'text-gray-400 bg-gray-100'
+                            : 'text-gray-600 bg-gray-100 hover:shadow-neumorphic-soft'
+                      }
+                    `}>
+                      {cell.getDate()}
+                    </div>
+                    
+                    {/* 収支インジケーター */}
+                    {hasData && !isToday && (
+                      <div className="mt-1 flex flex-col items-center">
+                        {/* 小さい丸 */}
+                        <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
+                          (t?.net_total ?? 0) < 0 ? 'bg-red-400' : 'bg-green-400'
+                        }`} />
+                        {/* トータル収支 */}
+                        <div className="text-[9px] sm:text-[10px] font-medium text-center leading-none mt-0.5">
+                          <div className={`${
+                            (t?.net_total ?? 0) < 0 ? 'text-red-500' : 'text-green-500'
+                          }`}>
+                            {(t?.net_total ?? 0) >= 0 ? '+' : ''}{(t?.net_total ?? 0).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* 今日の日付の場合の収支表示 */}
+                    {hasData && isToday && (
+                      <div className="mt-1 flex flex-col items-center">
+                        <div className="text-[9px] sm:text-[10px] font-medium text-center leading-none">
+                          <div className={`${
+                            (t?.net_total ?? 0) < 0 ? 'text-red-500' : 'text-green-500'
+                          }`}>
+                            {(t?.net_total ?? 0) >= 0 ? '+' : ''}{(t?.net_total ?? 0).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {/* 要確認インジケータ */}
+                    {pendingCount > 0 && (
+                      <div className="mt-1 text-[9px] sm:text-[10px] text-amber-600 font-medium">
+                        要確認{pendingCount > 1 ? ` ×${pendingCount}` : ''}
+                      </div>
                     )}
                   </div>
-                  <div className="mt-2 space-y-1">
-                    <div className="text-[10px] text-red-600">支出 {expense}</div>
-                    <div className="text-[10px] text-emerald-600">収入 {income}</div>
-                  </div>
-                </Card>
+                </div>
               );
             })}
           </div>
           {(!data || data.length === 0) && (
-            <Card className="p-6 mt-4 text-sm text-muted-foreground">データがありません</Card>
+            <div className="p-6 mt-4 text-sm text-gray-600 bg-gray-100 rounded-2xl shadow-inner">データがありません</div>
           )}
         </div>
       )}
 
-      <Dialog open={!!detailDate} onOpenChange={(o) => !o && setDetailDate(null)}>
-        <DialogContent>
-          <DialogHeader>
+      <Sheet open={!!detailDate} onOpenChange={(o) => !o && setDetailDate(null)}>
+        <SheetContent className="h-[85vh] sm:h-[70vh] overflow-hidden flex flex-col">
+          <SheetHeader className="text-lg font-semibold">
             {detailDate} の明細
-          </DialogHeader>
+          </SheetHeader>
+          <div className="flex-1 overflow-auto px-4 pb-4">
           {txLoading && (
             <div className="text-sm text-muted-foreground">読み込み中...</div>
           )}
@@ -291,7 +457,27 @@ export default function CalendarPage() {
             <div className="text-sm text-red-500">{txError}</div>
           )}
           {!txLoading && !txError && (
-            <div className="space-y-2 max-h-[60vh] overflow-auto">
+            <div className="space-y-2">
+              {/* Pending confirmations */}
+              {(pendingList ?? []).length > 0 && (
+                <Card className="p-3">
+                  <div className="text-sm font-medium mb-2">要確認のサブスク</div>
+                  <div className="space-y-2">
+                    {(pendingList ?? []).map((p) => (
+                      <div key={p.id} className="flex items-center justify-between text-sm">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{p.name}</div>
+                          <div className="text-xs text-muted-foreground">予定額: ¥{p.expected_amount.toLocaleString()} ・ 請求日: {p.billing_day}日</div>
+                        </div>
+                        <a className="ml-3" href={`/notifications?date=${detailDate ?? ''}`}>
+                          <Button size="sm" className="h-8">今すぐ確認</Button>
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
               {(txList ?? []).length === 0 && (
                 <div className="text-sm text-muted-foreground">明細はありません</div>
               )}
@@ -299,10 +485,17 @@ export default function CalendarPage() {
                 <Card key={tx.id} className="p-3">
                   <div className="flex items-center justify-between">
                     <div className="text-sm font-medium">{tx.category_name ?? "(未分類)"}</div>
-                    <div className={`text-sm ${tx.type === "expense" ? "text-red-600" : "text-emerald-700"}`}>
+                    <div className="text-sm" style={{ color: tx.type === "expense" ? 'var(--destructive)' : 'var(--success)' }}>
                       {tx.type === "expense" ? "-" : "+"}{tx.amount}
                     </div>
                   </div>
+                  {(tx.account_name || tx.place) && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {tx.account_name && <span>支出元: {tx.account_name}</span>}
+                      {tx.account_name && tx.place && <span> ・ </span>}
+                      {tx.place && <span>場所: {tx.place}</span>}
+                    </div>
+                  )}
                   {tx.memo && <div className="text-xs text-muted-foreground mt-1">{tx.memo}</div>}
 
                   {/* Reactions */}
@@ -360,8 +553,10 @@ export default function CalendarPage() {
               ))}
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+          </div>
+        </SheetContent>
+      </Sheet>
+      </div>
     </div>
   );
 }
