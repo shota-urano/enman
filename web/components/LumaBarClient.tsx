@@ -10,8 +10,8 @@ function resolveCurrent(pathname: string): NavId {
   if (pathname.startsWith("/notifications") || pathname.startsWith("/alerts")) return "alerts"
   if (pathname.startsWith("/subscriptions")) return "subscriptions"
   if (pathname.startsWith("/reports")) return "reports"
-  if (pathname.startsWith("/calendar")) return "calendar"
-  return "home"
+  if (pathname === "/" || pathname.startsWith("/calendar")) return "calendar"
+  return "calendar"
 }
 
 export default function LumaBarClient() {
@@ -52,9 +52,6 @@ export default function LumaBarClient() {
       badges={{ alerts: unread }}
       onNavigate={(to) => {
         switch (to) {
-          case "home":
-            router.push("/")
-            break
           case "calendar":
             router.push("/calendar")
             break

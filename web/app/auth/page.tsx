@@ -135,8 +135,8 @@ export default function AuthPage() {
           viewport.setAttribute("content", originalContent)
         }, 300)
       }
-      // Go to home; onboarding modal will handle first-login setup
-      router.replace("/")
+      // Go to main calendar view; onboarding modal will handle first-login setup
+      router.replace("/calendar")
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "認証エラーが発生しました"
       show(message, "error")

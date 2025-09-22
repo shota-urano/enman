@@ -35,7 +35,7 @@ export default function SetupPage() {
     try {
       await postJson("/api/households", { name })
       show("世帯を作成しました", "success")
-      router.replace("/")
+      router.replace("/calendar")
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "世帯作成に失敗しました"
       show(message, "error")
@@ -50,7 +50,7 @@ export default function SetupPage() {
     try {
       await postJson("/api/households/join", { token })
       show("世帯に参加しました", "success")
-      router.replace("/")
+      router.replace("/calendar")
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "参加に失敗しました"
       show(message, "error")

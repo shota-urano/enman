@@ -1,16 +1,16 @@
 "use client"
 import * as React from "react"
-import { Home, Bell, Settings, CalendarDays, BarChart3, Repeat, Plus } from "lucide-react"
+import { Bell, Settings, CalendarDays, BarChart3, Repeat, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export type LumaBarProps = {
-  current?: "home" | "calendar" | "reports" | "subscriptions" | "new" | "alerts" | "settings"
+  current?: "calendar" | "reports" | "subscriptions" | "new" | "alerts" | "settings"
   onNavigate?: (to: NonNullable<LumaBarProps["current"]>) => void
   className?: string
   badges?: Partial<Record<NonNullable<LumaBarProps["current"]>, number>>
 }
 
-export default function LumaBar({ current = "home", onNavigate, className, badges }: LumaBarProps) {
+export default function LumaBar({ current = "calendar", onNavigate, className, badges }: LumaBarProps) {
   const Item = (
     props: {
       id: NonNullable<LumaBarProps["current"]>
@@ -54,14 +54,18 @@ export default function LumaBar({ current = "home", onNavigate, className, badge
   return (
     <nav className={cn("fixed inset-x-3 bottom-4 z-50 pb-[env(safe-area-inset-bottom)]", className)} aria-label="メインナビゲーション">
       <div className="mx-auto w-full max-w-[720px] rounded-full border border-border/60 bg-card/80 backdrop-blur-xl px-3 py-2 md:px-4 md:py-3 shadow-lg overflow-x-auto overscroll-x-contain">
-        <div className="flex items-center justify-between gap-3 md:gap-4">
-          <Item id="home" icon={<Home className="size-5" />} label="ホーム" />
-          <Item id="calendar" icon={<CalendarDays className="size-5" />} label="カレンダー" />
-          <Item id="reports" icon={<BarChart3 className="size-5" />} label="レポート" />
+        {/* Split navigation into groups to keep spacing balanced without the old home tab */}
+        <div className="flex w-full items-center gap-3 md:gap-4">
+          <div className="flex basis-0 flex-1 items-center justify-evenly gap-3 md:gap-4 min-w-fit">
+            <Item id="calendar" icon={<CalendarDays className="size-5" />} label="カレンダー" />
+            <Item id="reports" icon={<BarChart3 className="size-5" />} label="レポート" />
+          </div>
           <Item id="new" icon={<Plus className="size-6" />} label="追加" prominent />
-          <Item id="subscriptions" icon={<Repeat className="size-5" />} label="サブスク" />
-          <Item id="alerts" icon={<Bell className="size-5" />} label="通知" />
-          <Item id="settings" icon={<Settings className="size-5" />} label="設定" />
+          <div className="flex basis-0 flex-1 items-center justify-evenly gap-3 md:gap-4 min-w-fit">
+            <Item id="subscriptions" icon={<Repeat className="size-5" />} label="サブスク" />
+            <Item id="alerts" icon={<Bell className="size-5" />} label="通知" />
+            <Item id="settings" icon={<Settings className="size-5" />} label="設定" />
+          </div>
         </div>
       </div>
     </nav>

@@ -208,7 +208,7 @@ export default function SettingsPage() {
     <main>
       <AppHeader
         title="設定"
-        right={<Link href="/"><Button variant="secondary" className="h-9">ホーム</Button></Link>}
+        right={<Link href="/calendar"><Button variant="secondary" className="h-9">カレンダー</Button></Link>}
       />
       <div className="container mx-auto max-w-5xl p-4 md:p-6 space-y-8">
 
