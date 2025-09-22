@@ -1,0 +1,4 @@
+- TypeScript with `strict` mode, Next.js App Router; prefer functional components and hooks.
+- Tailwind CSS v4 via `@import "tailwindcss"` in `globals.css`; design uses soft pastel palette and animated accents.
+- Shared utilities/components are imported through the `@/*` path alias; keep code strongly typed (lots of explicit type guards) and add brief comments only when logic is non-obvious.
+- ESLint flat config extends `next/core-web-vitals` + Storybook rules; follow default Next.js conventions.

@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,20 +36,36 @@ export default function OnboardingModal() {
   const [invite, setInvite] = useState('')
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
+  const pathname = usePathname()
   const { show } = useToast()
 
   useEffect(() => {
+    if (!pathname || pathname.startsWith('/auth')) {
+      setOpen(false)
+      return
+    }
     let mounted = true
-    getNeedsOnboarding().then((needs) => {
-      if (mounted && needs) setOpen(true)
-    })
+    async function checkInitialSession() {
+      try {
+        const supabase = createSupabaseBrowser()
+        const { data } = await supabase.auth.getSession()
+        const token = data.session?.access_token
+        if (!mounted || !token) return
+        const needs = await getNeedsOnboarding()
+        if (mounted && needs) setOpen(true)
+      } catch {
+        // no-op: missing Supabase config or network error while logged out
+      }
+    }
+    checkInitialSession()
     return () => {
       mounted = false
     }
-  }, [])
+  }, [pathname])
 
   // Re-check when auth state changes (e.g. sign-in/up completes without full reload)
   useEffect(() => {
+    if (!pathname || pathname.startsWith('/auth')) return
     let unsub: (() => void) | undefined
     try {
       const supabase = createSupabaseBrowser()
@@ -70,7 +87,7 @@ export default function OnboardingModal() {
     return () => {
       if (unsub) unsub()
     }
-  }, [])
+  }, [pathname])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -92,7 +109,7 @@ export default function OnboardingModal() {
     }
   }
 
-  if (!open) return null
+  if (!open || pathname?.startsWith('/auth')) return null
 
   return (
     <Dialog open={open} onOpenChange={(v) => setOpen(v)}>

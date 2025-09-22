@@ -1,0 +1,3 @@
+- Next.js 15 + React 19 app (App Router) for "enman", a pastel-themed personal finance/workflow tool with calendar, transactions, reports, notifications, etc.
+- Uses Supabase (see `supabase/` migrations) for auth + data; browser client via `@supabase/supabase-js` and service-role interactions on the server.
+- Frontend lives under `web/` with App Router pages in `web/app/*`, shared UI components under `web/components`, stores in `web/store`, utilities in `web/lib`, and API routes in `web/app/api`.

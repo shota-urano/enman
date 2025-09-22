@@ -1,0 +1,6 @@
+- `cd web && npm install` – install frontend deps.
+- `cd web && npm run dev` – start Next.js dev server on :3000.
+- `cd web && npm run lint` / `npm run typecheck` / `npm run test` – lint, type-check, and run Vitest suites.
+- `cd web && npm run storybook` – run Storybook at :6006 for component work.
+- `supabase login` / `supabase link --project-ref <ref>` – authenticate CLI and bind to the Supabase project.
+- `supabase start` / `supabase db push` – run local Supabase stack and apply migrations in `supabase/migrations/`.

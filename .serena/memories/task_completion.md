@@ -1,0 +1,3 @@
+- For frontend updates run `npm run lint`, `npm run typecheck`, and relevant `npm run test` in `web/` before handing off.
+- If DB schema changes, add a Supabase migration (`supabase migration new`, then `supabase db push`) and mention necessary env vars (`SUPABASE_URL`, etc.).
+- Summarize user-visible changes and note any follow-up work (e.g., Storybook stories, E2E/Playwright coverage) when finishing a task.
