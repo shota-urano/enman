@@ -123,6 +123,18 @@ export default function AuthPage() {
         document.cookie = `sb-access-token=${encodeURIComponent(token)}; ${attrs}`
       }
       show(mode === "signin" ? "サインイン成功" : "サインアップ成功", "success")
+      // Reset any iOS zoom state before leaving the auth page so the next screen renders at normal scale
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
+      }
+      const viewport = document.querySelector('meta[name="viewport"]')
+      if (viewport) {
+        const originalContent = viewport.getAttribute("content") ?? "width=device-width, initial-scale=1"
+        viewport.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1")
+        window.setTimeout(() => {
+          viewport.setAttribute("content", originalContent)
+        }, 300)
+      }
       // Go to home; onboarding modal will handle first-login setup
       router.replace("/")
     } catch (err: unknown) {
