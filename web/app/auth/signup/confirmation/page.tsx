@@ -26,9 +26,15 @@ export default function SignupConfirmationPage() {
             If the email does not arrive soon, look in your spam folder or try sending it again in a few minutes.
           </div>
           <div>
-            <Button asChild size="lg" className="w-full" style={{ backgroundColor: "#FADADD", color: "#4A5568" }}>
-              <Link href="/auth" className="no-underline text-[#4A5568]">Back to sign-in</Link>
-            </Button>
+            <Link href="/auth" className="no-underline">
+              <Button
+                size="lg"
+                className="w-full"
+                style={{ backgroundColor: "#FADADD", color: "#4A5568" }}
+              >
+                Back to sign-in
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
