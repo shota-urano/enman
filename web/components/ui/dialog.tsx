@@ -72,10 +72,10 @@ export function DialogContent({ className, children }: { className?: string; chi
       aria-modal="true"
       className="fixed inset-0 z-50"
     >
-      <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+      <div className="absolute inset-0 bg-[#eef1f6]/70 backdrop-blur-sm" onClick={() => setOpen(false)} />
       <div
         className={cn(
-          "relative mx-auto mt-24 w-[min(92vw,420px)] rounded-xl bg-background text-foreground shadow-xl border",
+          "relative mx-auto mt-24 w-[min(92vw,440px)] rounded-[32px] border border-white/50 bg-white/80 text-foreground shadow-neumorphic bg-surface-neumorphic",
           className,
         )}
       >
@@ -87,7 +87,14 @@ export function DialogContent({ className, children }: { className?: string; chi
 
 export function DialogHeader({ className, children }: { className?: string; children?: React.ReactNode }) {
   return (
-    <div className={cn("p-4 border-b text-sm font-medium", className)}>{children}</div>
+    <div
+      className={cn(
+        "flex items-center justify-between gap-4 rounded-t-[32px] border-b border-white/40 bg-white/50 px-6 py-5 text-sm font-medium",
+        className,
+      )}
+    >
+      {children}
+    </div>
   )
 }
 

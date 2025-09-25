@@ -9,7 +9,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     <div
       ref={ref}
       className={cn(
-        "rounded-xl border-0 bg-card text-foreground shadow-neumorphic",
+        "rounded-[28px] border border-white/40 bg-card text-foreground shadow-neumorphic bg-surface-neumorphic",
         className,
       )}
       {...props}
@@ -22,7 +22,10 @@ export const CardHeader = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("p-4 text-[13px] text-muted-foreground border-b", className)}
+      className={cn(
+        "flex items-center gap-2 rounded-t-[28px] border-b border-white/50 bg-white/30 px-6 py-4 text-[13px] text-muted-foreground backdrop-blur-sm",
+        className,
+      )}
       {...props}
     />
   ),
@@ -31,7 +34,11 @@ CardHeader.displayName = "CardHeader"
 
 export const CardBody = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("p-4", className)} {...props} />
+    <div
+      ref={ref}
+      className={cn("px-6 py-5 text-sm text-foreground", className)}
+      {...props}
+    />
   ),
 )
 CardBody.displayName = "CardBody"

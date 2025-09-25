@@ -52,7 +52,13 @@ function kindMeta(n: Notification) {
 
 export default function NotificationsPage() {
   return (
-    <Suspense fallback={<div className="p-6">読み込み中...</div>}>
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-md rounded-[24px] border border-white/60 bg-white/75 px-6 py-4 text-center text-sm text-muted-foreground shadow-neumorphic-soft">
+          読み込み中...
+        </div>
+      }
+    >
       <NotificationsContent />
     </Suspense>
   );
@@ -120,24 +126,33 @@ function NotificationsContent() {
   const hasItems = filtered.length > 0;
 
   return (
-    <main className="page-container pb-28">
+    <main className="mx-auto max-w-4xl px-4 pb-28 pt-6 space-y-4 md:px-6">
       <AppHeader title="通知" />
 
-      <div className="mx-auto w-full max-w-[720px] px-4 py-3 space-y-3">
+      <div className="space-y-4">
         {error && (
-          <div role="alert" className="rounded-md border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm flex items-center justify-between">
+          <div
+            role="alert"
+            className="flex items-center justify-between rounded-[24px] border border-white/60 bg-gradient-to-br from-[rgba(255,228,232,1)] via-[rgba(255,210,217,0.94)] to-[rgba(242,139,148,0.9)] px-4 py-3 text-sm text-foreground shadow-neumorphic-soft"
+          >
             <span>通知の取得に失敗しました。再試行してください。</span>
-            <Button size="sm" variant="destructive" onClick={() => load()}>
+            <Button
+              size="sm"
+              className="rounded-full bg-white/75 px-4 text-sm font-semibold text-foreground shadow-neumorphic-soft hover:shadow-neumorphic-hover"
+              onClick={() => load()}
+            >
               再試行
             </Button>
           </div>
         )}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 rounded-full border bg-card p-1">
+          <div className="flex items-center gap-1 rounded-full border border-white/60 bg-white/70 p-1 shadow-neumorphic-soft">
             <button
               className={cn(
-                "px-3 py-1.5 text-sm rounded-full",
-                onlyUnread ? "bg-background shadow-sm" : "text-muted-foreground",
+                "rounded-full px-3 py-1.5 text-sm transition-all",
+                onlyUnread
+                  ? "bg-gradient-to-br from-white via-[rgba(255,255,255,0.94)] to-[rgba(226,231,242,0.9)] text-foreground shadow-neumorphic-soft"
+                  : "text-muted-foreground hover:text-foreground",
               )}
               onClick={() => setOnlyUnread(true)}
               aria-pressed={onlyUnread}
@@ -146,8 +161,10 @@ function NotificationsContent() {
             </button>
             <button
               className={cn(
-                "px-3 py-1.5 text-sm rounded-full",
-                !onlyUnread ? "bg-background shadow-sm" : "text-muted-foreground",
+                "rounded-full px-3 py-1.5 text-sm transition-all",
+                !onlyUnread
+                  ? "bg-gradient-to-br from-white via-[rgba(255,255,255,0.94)] to-[rgba(226,231,242,0.9)] text-foreground shadow-neumorphic-soft"
+                  : "text-muted-foreground hover:text-foreground",
               )}
               onClick={() => setOnlyUnread(false)}
               aria-pressed={!onlyUnread}
@@ -156,35 +173,40 @@ function NotificationsContent() {
             </button>
           </div>
 
-          <Button variant="secondary" size="sm" onClick={() => load()} disabled={loading}>
+          <Button
+            size="sm"
+            className="rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] px-4 text-sm text-white shadow-neumorphic-soft"
+            onClick={() => load()}
+            disabled={loading}
+          >
             更新
           </Button>
         </div>
 
         <Card>
-          <CardBody className="p-0">
+          <CardBody className="divide-y divide-white/50 p-0">
             {loading ? (
               <ul className="divide-y">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <li key={i} className="p-4">
+                  <li key={i} className="px-4 py-3">
                     <div className="flex items-start gap-3">
-                      <div className="size-10 rounded-full bg-gray-200 animate-pulse" />
+                      <div className="size-10 rounded-full bg-white/70 animate-pulse" />
                       <div className="flex-1 space-y-2">
-                        <div className="h-4 w-1/2 bg-gray-200 rounded-md animate-pulse" />
-                        <div className="h-3 w-2/3 bg-gray-200 rounded-md animate-pulse" />
+                        <div className="h-4 w-1/2 rounded-md bg-white/70 animate-pulse" />
+                        <div className="h-3 w-2/3 rounded-md bg-white/70 animate-pulse" />
                       </div>
                     </div>
                   </li>
                 ))}
               </ul>
             ) : hasItems ? (
-              <ul className="divide-y">
+              <ul>
                 {filtered.map((n) => {
                   const meta = kindMeta(n);
                   return (
                     <li
                       key={n.id}
-                      className="p-4 cursor-pointer hover:bg-accent/40"
+                      className="cursor-pointer px-4 py-3 transition-all hover:bg-white/60 hover:shadow-neumorphic-soft"
                       onClick={async () => {
                         if (confirmBusy) return;
                         // Navigate to detail based on type/payload
@@ -224,8 +246,10 @@ function NotificationsContent() {
                       <div className="flex items-start gap-3">
                         <div
                           className={cn(
-                            "flex size-10 items-center justify-center rounded-full border",
-                            n.read ? "bg-background" : "bg-primary/10 border-primary/30",
+                            "flex size-10 items-center justify-center rounded-full border border-white/60 shadow-neumorphic-soft",
+                            n.read
+                              ? "bg-white/70 text-muted-foreground"
+                              : "bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] text-white",
                           )}
                           aria-hidden
                         >
@@ -247,18 +271,32 @@ function NotificationsContent() {
                         </div>
                         {!n.read && n.type !== "subscription_reminder" && (
                           <div className="shrink-0">
-                            <Button size="sm" variant="secondary" onClick={() => markRead(n.id)}>
+                            <Button
+                              size="sm"
+                              className="rounded-full bg-white/80 px-4 text-sm text-foreground shadow-neumorphic-soft hover:shadow-neumorphic-hover"
+                              onClick={() => markRead(n.id)}
+                            >
                               既読にする
                             </Button>
                           </div>
                         )}
                         {n.type === "subscription_reminder" && !n.read && (
                           <div className="shrink-0 flex items-center gap-2">
-                            <Button size="sm" variant="secondary" onClick={() => markRead(n.id)} disabled={confirmBusy}>
+                            <Button
+                              size="sm"
+                              className="rounded-full bg-white/80 px-4 text-sm text-foreground shadow-neumorphic-soft hover:shadow-neumorphic-hover"
+                              onClick={() => markRead(n.id)}
+                              disabled={confirmBusy}
+                            >
                               既読
                             </Button>
                             <Button
                               size="sm"
+                              className={
+                                processed.has(n.id)
+                                  ? "rounded-full bg-muted/70 px-4 text-sm text-muted-foreground shadow-inner"
+                                  : "rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] px-4 text-sm text-white shadow-neumorphic-soft"
+                              }
                               disabled={processed.has(n.id) || (confirm?.nId === n.id && confirmBusy)}
                               onClick={() => {
                                 const subId = String(n.payload?.["subscription_id"] ?? "");
@@ -290,8 +328,8 @@ function NotificationsContent() {
                 })}
               </ul>
             ) : (
-              <div className="p-8 grid place-items-center text-center gap-3">
-                <div className="size-12 rounded-full bg-gray-100 text-gray-500 grid place-items-center">
+              <div className="grid place-items-center gap-3 rounded-[32px] border border-white/60 bg-white/75 px-8 py-10 text-center shadow-neumorphic-soft">
+                <div className="grid size-12 place-items-center rounded-full bg-white/80 text-muted-foreground shadow-neumorphic-soft">
                   <Inbox className="size-6" />
                 </div>
                 <div className="text-sm font-medium">通知はありません</div>

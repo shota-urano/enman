@@ -86,14 +86,14 @@ export function SheetContent({ className, children }: { className?: string; chil
     <div className="fixed inset-0 z-50">
       <div 
         className={cn(
-          "absolute inset-0 bg-black/40 transition-opacity duration-500",
+          "absolute inset-0 bg-[#eef1f6]/70 backdrop-blur-sm transition-opacity duration-500",
           isAnimating ? "opacity-100" : "opacity-0"
         )} 
         onClick={() => setOpen(false)} 
       />
       <div
         className={cn(
-          "absolute inset-x-0 bottom-0 w-full rounded-t-2xl border bg-background text-foreground shadow-xl",
+          "absolute inset-x-0 bottom-0 w-full rounded-t-[40px] border border-white/40 bg-white/85 text-foreground shadow-neumorphic bg-surface-neumorphic backdrop-blur-xl",
           "transform transition-transform duration-500 ease-out",
           isAnimating ? "translate-y-0" : "translate-y-full",
           className,
@@ -101,7 +101,7 @@ export function SheetContent({ className, children }: { className?: string; chil
         role="dialog"
         aria-modal="true"
       >
-        <div className="h-1.5 w-12 mx-auto my-2 rounded-full bg-muted" aria-hidden />
+        <div className="mx-auto my-3 h-1.5 w-14 rounded-full bg-gradient-to-r from-muted/60 via-white/90 to-muted/60" aria-hidden />
         {children}
       </div>
     </div>
@@ -109,6 +109,15 @@ export function SheetContent({ className, children }: { className?: string; chil
 }
 
 export function SheetHeader({ className, children }: { className?: string; children?: React.ReactNode }) {
-  return <div className={cn("px-4 pb-3 text-sm font-medium", className)}>{children}</div>
+  return (
+    <div
+      className={cn(
+        "px-6 pb-5 text-sm font-medium text-muted-foreground",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  )
 }
 

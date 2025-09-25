@@ -148,52 +148,73 @@ export default function ReportsPage() {
     setCurrentMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
   }
 
+  const navButtonClass =
+    "h-10 w-10 rounded-full p-0 text-base font-semibold shadow-neumorphic-soft hover:shadow-neumorphic-hover";
+
   return (
     <div>
       <AppHeader
         title={`月次サマリー ${monthKey}`}
-        left={<Button aria-label="前の月" variant="ghost" className="h-9 px-3" onClick={prevMonth}>&lt;</Button>}
-        right={<Button aria-label="次の月" variant="ghost" className="h-9 px-3" onClick={nextMonth}>&gt;</Button>}
+        left={
+          <Button aria-label="前の月" className={navButtonClass} onClick={prevMonth}>
+            <span className="text-lg leading-none">&lt;</span>
+          </Button>
+        }
+        right={
+          <Button aria-label="次の月" className={navButtonClass} onClick={nextMonth}>
+            <span className="text-lg leading-none">&gt;</span>
+          </Button>
+        }
       />
-      <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6 shadow-inner rounded-xl bg-background/50">
+      <main className="mx-auto max-w-6xl space-y-6 px-4 pb-24 pt-6 md:px-8">
 
-      {loading && <Card className="p-6 text-sm text-muted-foreground">読み込み中...</Card>}
-      {error && <Card className="p-6 text-sm text-red-500">{error}</Card>}
+      {loading && (
+        <Card className="rounded-[28px] border border-white/60 bg-white/75 p-6 text-sm text-muted-foreground shadow-neumorphic-soft">
+          読み込み中...
+        </Card>
+      )}
+      {error && (
+        <Card className="rounded-[28px] border border-white/60 bg-gradient-to-br from-[rgba(255,228,232,1)] via-[rgba(255,210,217,0.94)] to-[rgba(242,139,148,0.9)] p-6 text-sm text-foreground shadow-neumorphic-soft">
+          {error}
+        </Card>
+      )}
 
       {!loading && !error && (
         <>
           {/* Charts */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Pie (Expense composition) */}
-            <Card className="p-4">
-              <div className="text-sm font-medium mb-3 p-2 rounded-lg shadow-neumorphic-soft bg-card/30">支出カテゴリ内訳（円グラフ）</div>
-              <div className="flex items-center gap-6">
+            <Card className="space-y-4 p-6">
+              <div className="rounded-[24px] border border-white/40 bg-white/60 px-4 py-2 text-sm font-medium text-muted-foreground">
+                支出カテゴリ内訳（円グラフ）
+              </div>
+              <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
                 <div
                   className="w-48 h-48 rounded-full shadow-neumorphic"
                   style={pieStyle}
                   aria-label="Expense pie chart"
                 />
-                <div className="text-xs space-y-1">
+                <div className="flex-1 space-y-1 text-xs">
                   {expenseTotals.length === 0 && (
                     <div className="text-muted-foreground">データがありません</div>
                   )}
                   {expenseTotals.map((t, i) => (
                     <div
                       key={t.category_id}
-                      className={`flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${
-                        hoverCatId === t.category_id 
-                          ? "font-semibold shadow-neumorphic-soft bg-card/50" 
-                          : "hover:shadow-neumorphic-soft hover:bg-card/30"
+                      className={`flex items-center gap-2 rounded-[20px] px-3 py-2 transition-all duration-200 ${
+                        hoverCatId === t.category_id
+                          ? "bg-white/70 font-semibold shadow-neumorphic-soft"
+                          : "hover:bg-white/60 hover:shadow-neumorphic-soft"
                       }`}
                       onMouseEnter={() => setHoverCatId(t.category_id)}
                       onMouseLeave={() => setHoverCatId((id) => (id === t.category_id ? null : id))}
                     >
-                      <span 
-                        className="inline-block w-3 h-3 rounded-sm shadow-neumorphic-soft" 
-                        style={{ background: chartColors[i % chartColors.length] }} 
+                      <span
+                        className="inline-block h-3 w-3 rounded-sm shadow-neumorphic-soft"
+                        style={{ background: chartColors[i % chartColors.length] }}
                       />
-                      <span className="truncate max-w-[200px]">{t.name}</span>
-                      <span className="ml-auto tabular-nums font-mono">{t.expense}</span>
+                      <span className="max-w-[200px] truncate">{t.name}</span>
+                      <span className="ml-auto font-mono tabular-nums">{t.expense}</span>
                     </div>
                   ))}
                 </div>
@@ -201,8 +222,10 @@ export default function ReportsPage() {
             </Card>
 
             {/* Bars (Category totals) */}
-            <Card className="p-4">
-              <div className="text-sm font-medium mb-3 p-2 rounded-lg shadow-neumorphic-soft bg-card/30">カテゴリ別金額（棒グラフ）</div>
+            <Card className="space-y-4 p-6">
+              <div className="rounded-[24px] border border-white/40 bg-white/60 px-4 py-2 text-sm font-medium text-muted-foreground">
+                カテゴリ別金額（棒グラフ）
+              </div>
               <div className="space-y-2">
                 {expenseTotals.length === 0 && incomeTotals.length === 0 && (
                   <div className="text-xs text-muted-foreground">データがありません</div>
@@ -219,11 +242,11 @@ export default function ReportsPage() {
                   const highlighted = hoverCatId === t.category_id;
                   return (
                     <div key={`${t.category_id}-${i}`} className="flex items-center gap-2">
-                      <div className="w-40 text-xs truncate" title={t.name}>{t.name}</div>
-                      <div className="flex-1 h-4 bg-muted rounded shadow-inner">
+                      <div className="w-40 truncate text-xs" title={t.name}>{t.name}</div>
+                      <div className="h-4 flex-1 rounded-full bg-white/60 shadow-inner">
                         <div
-                          className={`h-4 rounded transition-all shadow-neumorphic-soft ${
-                            highlighted ? "shadow-neumorphic-hover scale-105" : "hover:shadow-neumorphic"
+                          className={`h-4 rounded-full transition-all shadow-neumorphic-soft ${
+                            highlighted ? "scale-[1.03] shadow-neumorphic-hover" : "hover:shadow-neumorphic"
                           }`}
                           style={{ width: `${pct}%`, background: color }}
                           onMouseEnter={() => setHoverCatId(t.category_id)}
@@ -239,8 +262,10 @@ export default function ReportsPage() {
           </div>
 
           {/* Table */}
-          <Card className="p-4">
-            <div className="text-sm font-medium mb-3 p-2 rounded-lg shadow-neumorphic-soft bg-card/30">カテゴリ別サマリー</div>
+          <Card className="space-y-4 p-6">
+            <div className="rounded-[24px] border border-white/40 bg-white/60 px-4 py-2 text-sm font-medium text-muted-foreground">
+              カテゴリ別サマリー
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs text-muted-foreground">
@@ -293,7 +318,7 @@ export default function ReportsPage() {
           </Card>
         </>
       )}
-      </div>
+      </main>
     </div>
   );
 }

@@ -17,11 +17,13 @@ export default function AppHeader({ title, left, right, className }: AppHeaderPr
     )}>
       <div className="h-[env(safe-area-inset-top)]" aria-hidden />
       <div className={cn(
-        "flex items-center gap-3 px-4 h-14 md:h-16",
-        "backdrop-blur-md bg-card/80 border-b border-border/60",
+        "mx-4 mb-4 flex h-14 items-center gap-3 rounded-[28px] border border-white/60 px-4 shadow-neumorphic backdrop-blur-md md:mx-6 md:h-16 md:px-6",
+        "bg-surface-neumorphic",
       )}>
         <div className="min-w-10 flex items-center justify-start">{left}</div>
-        <div className="flex-1 text-center font-medium truncate">{title}</div>
+        <div className="flex-1 truncate text-center text-base font-semibold text-foreground md:text-lg">
+          {title}
+        </div>
         <div className="min-w-10 flex items-center justify-end gap-1">{right}</div>
       </div>
     </div>

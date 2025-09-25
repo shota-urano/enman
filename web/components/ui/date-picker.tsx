@@ -18,9 +18,9 @@ export const DatePicker = React.forwardRef<HTMLInputElement, DatePickerProps>(
         ref={ref}
         type="date"
         className={cn(
-          "flex h-9 w-full rounded-md bg-background px-3 py-2 text-sm",
-          "border border-input placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-12 w-full rounded-[999px] bg-gradient-to-br from-white via-[rgba(255,255,255,0.95)] to-[rgba(223,228,240,0.92)] px-5 text-sm",
+          "border border-transparent text-foreground placeholder:text-muted-foreground shadow-inner focus:border-ring/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          "disabled:cursor-not-allowed disabled:opacity-60",
           className,
         )}
         {...props}

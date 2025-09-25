@@ -113,25 +113,35 @@ export default function OnboardingModal() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => setOpen(v)}>
-      <DialogContent className="max-w-md w-[min(92vw,28rem)] mx-4 p-6 pb-7">
+      <DialogContent className="mx-4 w-[min(92vw,30rem)] max-w-lg px-8 pb-8 pt-7">
         <DialogHeader>
-          <h3 className="text-lg font-semibold">はじめに</h3>
-          <p className="text-sm text-muted-foreground">招待コードで世帯に参加するか、新しく世帯を作成してください</p>
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">はじめに</h3>
+            <p className="mt-1 text-sm text-muted-foreground">招待コードで世帯に参加するか、新しく世帯を作成してください</p>
+          </div>
         </DialogHeader>
 
         {/* Mode toggle */}
-        <div className="inline-flex rounded-full p-1 mb-4 border">
+        <div className="mb-6 inline-flex w-full items-center justify-center gap-1 rounded-[999px] border border-white/60 bg-white/70 p-1 shadow-neumorphic-soft">
           <button
             type="button"
             onClick={() => setMode('invite')}
-            className={`px-4 py-2 text-sm rounded-full ${mode === 'invite' ? 'bg-card shadow-sm' : 'text-gray-600'}`}
+            className={`flex-1 rounded-[999px] px-4 py-2 text-sm font-medium transition-all ${
+              mode === 'invite'
+                ? 'bg-gradient-to-br from-white via-[rgba(255,255,255,0.94)] to-[rgba(223,228,240,0.9)] text-foreground shadow-neumorphic-soft'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
             招待あり
           </button>
           <button
             type="button"
             onClick={() => setMode('create')}
-            className={`px-4 py-2 text-sm rounded-full ${mode === 'create' ? 'bg-card shadow-sm' : 'text-gray-600'}`}
+            className={`flex-1 rounded-[999px] px-4 py-2 text-sm font-medium transition-all ${
+              mode === 'create'
+                ? 'bg-gradient-to-br from-white via-[rgba(255,255,255,0.94)] to-[rgba(223,228,240,0.9)] text-foreground shadow-neumorphic-soft'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
             招待なし
           </button>
@@ -141,40 +151,38 @@ export default function OnboardingModal() {
         {mode === 'invite' ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm">招待コード</label>
-              <div className="rounded-xl border border-black/10 bg-white shadow-sm hover:shadow-md focus-within:shadow-md transition-shadow px-3 py-2">
-                <Input
-                  className="bg-transparent border-0 focus-visible:ring-0 focus-visible:outline-none"
-                  value={invite}
-                  onChange={(e) => setInvite(e.target.value)}
-                  placeholder="ABCD-1234 など"
-                  aria-label="招待コード"
-                  autoComplete="off"
-                  required
-                />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">メールやチャットで共有されたコードを入力してください</p>
+              <label className="mb-2 block text-sm font-medium text-muted-foreground">招待コード</label>
+              <Input
+                value={invite}
+                onChange={(e) => setInvite(e.target.value)}
+                placeholder="ABCD-1234 など"
+                aria-label="招待コード"
+                autoComplete="off"
+                required
+              />
+              <p className="mt-2 text-xs text-muted-foreground">メールやチャットで共有されたコードを入力してください</p>
             </div>
-            <Button type="submit" disabled={loading} className="mt-1 w-full">{loading ? '参加中...' : '参加する'}</Button>
+            <Button type="submit" disabled={loading} className="mt-2 w-full">
+              {loading ? '参加中...' : '参加する'}
+            </Button>
           </form>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm">世帯名</label>
-              <div className="rounded-xl border border-black/10 bg-white shadow-sm hover:shadow-md focus-within:shadow-md transition-shadow px-3 py-2">
-                <Input
-                  className="bg-transparent border-0 focus-visible:ring-0 focus-visible:outline-none"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="例: 田中家"
-                  aria-label="世帯名"
-                  autoComplete="off"
-                  required
-                />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">あとから設定で変更できます</p>
+              <label className="mb-2 block text-sm font-medium text-muted-foreground">世帯名</label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="例: 田中家"
+                aria-label="世帯名"
+                autoComplete="off"
+                required
+              />
+              <p className="mt-2 text-xs text-muted-foreground">あとから設定で変更できます</p>
             </div>
-            <Button type="submit" disabled={loading} className="mt-1">{loading ? '作成中...' : '作成する'}</Button>
+            <Button type="submit" disabled={loading} className="mt-2">
+              {loading ? '作成中...' : '作成する'}
+            </Button>
           </form>
         )}
       </DialogContent>

@@ -35,18 +35,18 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ toasts, show, dismiss }}>
       {children}
       {/* Portal-less inline toaster */}
-      <div className="fixed bottom-4 right-4 z-50 space-y-2">
+      <div className="fixed bottom-6 right-6 z-50 space-y-3">
         {toasts.map((t) => (
           <div
             key={t.id}
             role="status"
             className={
-              "min-w-60 max-w-96 rounded-md border px-4 py-3 text-sm shadow-md " +
+              "min-w-60 max-w-96 rounded-[28px] border px-5 py-3 text-sm shadow-neumorphic-soft backdrop-blur-sm transition-all" +
               (t.type === "success"
-                ? "bg-secondary text-secondary-foreground border-border"
+                ? " bg-gradient-to-br from-white via-[rgba(245,255,251,0.92)] to-[rgba(202,236,217,0.9)] text-foreground border-white/50"
                 : t.type === "error"
-                ? "bg-destructive text-white border-destructive/30"
-                : "bg-background text-foreground border-border")
+                ? " bg-gradient-to-br from-[rgba(255,228,232,1)] via-[rgba(255,210,217,0.94)] to-[rgba(242,139,148,0.9)] text-foreground border-white/40"
+                : " bg-gradient-to-br from-white via-[rgba(255,255,255,0.94)] to-[rgba(226,231,242,0.92)] text-foreground border-white/50")
             }
           >
             {t.message}

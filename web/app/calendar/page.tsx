@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 import AppHeader from "@/components/AppHeader";
 import TransactionEditDialog from "@/components/TransactionEditDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -385,42 +386,64 @@ export default function CalendarPage() {
     return `${deleteTarget.date} の${label} ¥${deleteTarget.amount.toLocaleString()}を削除します。この操作は取り消せません。`;
   }, [deleteTarget]);
 
+  const navButtonClass =
+    "h-10 w-10 rounded-full p-0 text-base font-semibold shadow-neumorphic-soft hover:shadow-neumorphic-hover";
+  const chipButtonClass =
+    "h-8 rounded-full bg-white/80 px-3 text-xs font-medium text-foreground shadow-neumorphic-soft transition-all hover:shadow-neumorphic-hover";
+
   return (
     <div>
       <AppHeader
         title={monthTitle}
-        left={<Button aria-label="前の月" variant="ghost" className="h-9 px-3" onClick={prevMonth}>&lt;</Button>}
-        right={<Button aria-label="次の月" variant="ghost" className="h-9 px-3" onClick={nextMonth}>&gt;</Button>}
+        left={
+          <Button aria-label="前の月" className={navButtonClass} onClick={prevMonth}>
+            <span className="text-lg leading-none">&lt;</span>
+          </Button>
+        }
+        right={
+          <Button aria-label="次の月" className={navButtonClass} onClick={nextMonth}>
+            <span className="text-lg leading-none">&gt;</span>
+          </Button>
+        }
       />
-      <div className="p-4 md:p-6 max-w-5xl mx-auto bg-gray-100 min-h-screen">
+      <main className="mx-auto min-h-[calc(100dvh-140px)] max-w-5xl px-4 pb-28 pt-4 md:px-8">
 
       {loading && (
-        <div className="p-6 text-sm text-gray-600 bg-gray-100 rounded-2xl shadow-inner">読み込み中...</div>
+        <div className="rounded-[28px] border border-white/50 bg-white/80 px-5 py-4 text-sm text-muted-foreground shadow-neumorphic-soft">
+          読み込み中...
+        </div>
       )}
       {error && (
-        <div className="p-6 text-sm text-red-600 bg-gray-100 rounded-2xl shadow-inner">{error}</div>
+        <div className="rounded-[28px] border border-white/50 bg-gradient-to-br from-[rgba(255,228,232,1)] via-[rgba(255,210,217,0.94)] to-[rgba(242,139,148,0.9)] px-5 py-4 text-sm text-foreground shadow-neumorphic-soft">
+          {error}
+        </div>
       )}
       {!loading && !error && (
         <div>
-          {/* 月間サマリー - 表形式 */}
-          <div className="mb-6 bg-gray-100 rounded-3xl p-6 shadow-neumorphic">
+          {/* 月間サマリー */}
+          <div className="mb-6 rounded-[32px] border border-white/60 bg-white/85 p-6 shadow-neumorphic">
             <div className="grid grid-cols-3 gap-4 text-center">
-              {/* タイトル行 */}
-              <div className="text-sm text-gray-500">今月のサマリー</div>
-              <div className="text-sm text-gray-500">収入</div>
-              <div className="text-sm text-gray-500">支出</div>
-              
-              {/* データ行 */}
-              <div className={`text-2xl sm:text-3xl font-bold ${
-                monthlySummary.netTotal >= 0 ? 'text-green-600' : 'text-red-500'
-              }`}>
-                {monthlySummary.netTotal.toLocaleString()}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">残高</span>
+                <span
+                  className="text-2xl font-semibold sm:text-3xl"
+                  style={{ color: monthlySummary.netTotal >= 0 ? 'var(--success)' : 'var(--destructive)' }}
+                >
+                  {monthlySummary.netTotal >= 0 ? '+' : ''}
+                  {monthlySummary.netTotal.toLocaleString()}
+                </span>
               </div>
-              <div className="text-2xl sm:text-3xl font-bold text-green-600">
-                +{monthlySummary.totalIncome.toLocaleString()}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">収入</span>
+                <span className="text-2xl font-semibold text-[color:var(--success)] sm:text-3xl">
+                  +{monthlySummary.totalIncome.toLocaleString()}
+                </span>
               </div>
-              <div className="text-2xl sm:text-3xl font-bold text-red-500">
-                -{monthlySummary.totalExpense.toLocaleString()}
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">支出</span>
+                <span className="text-2xl font-semibold text-[color:var(--destructive)] sm:text-3xl">
+                  -{monthlySummary.totalExpense.toLocaleString()}
+                </span>
               </div>
             </div>
           </div>
@@ -430,7 +453,7 @@ export default function CalendarPage() {
               <div key={d}>{d}</div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-3 bg-gray-100 rounded-3xl p-6 shadow-neumorphic">
+          <div className="grid grid-cols-7 gap-3 rounded-[36px] border border-white/60 bg-white/85 p-6 shadow-neumorphic">
             {weeks.flat().map((cell, idx) => {
               if (!cell) return <div key={idx} className="h-16 sm:h-20"/>;
               const yyyy = cell.getFullYear();
@@ -442,91 +465,90 @@ export default function CalendarPage() {
               const isToday = new Date().toDateString() === cell.toDateString();
               const pendingCount = pendingByDate.get(key) ?? 0;
               
+              const dayButtonClass = cn(
+                "flex h-11 w-11 items-center justify-center rounded-[26px] text-sm font-semibold transition-all duration-200 sm:h-14 sm:w-14 sm:text-base",
+                isToday
+                  ? "bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] text-white shadow-neumorphic-hover"
+                  : hasData
+                    ? "bg-white/85 text-foreground shadow-neumorphic-soft hover:shadow-neumorphic-hover"
+                    : cell.getMonth() === currentMonth.getMonth()
+                      ? "bg-white/70 text-muted-foreground shadow-neumorphic-soft hover:shadow-neumorphic-hover"
+                      : "bg-transparent text-muted-foreground/70",
+              );
+
+              const canInteract = hasData || pendingCount > 0;
+
               return (
-                <div key={idx} 
-                  className="h-16 sm:h-20 relative cursor-pointer transition-all duration-300 flex flex-col items-center justify-center p-2"
+                <button
+                  key={idx}
+                  type="button"
+                  disabled={!canInteract}
+                  className={cn(
+                    "relative flex h-20 flex-col items-center justify-start rounded-[30px] border border-transparent p-2 transition-all duration-200 sm:h-24",
+                    canInteract && "cursor-pointer hover:border-white/60 hover:bg-white/60 hover:shadow-neumorphic-soft",
+                    !canInteract && "cursor-default",
+                  )}
                   onClick={() => {
                     if (hasData) {
-                      openDetail(key)
+                      openDetail(key);
                     } else if (pendingCount > 0) {
-                      router.push(`/notifications?date=${key}`)
+                      router.push(`/notifications?date=${key}`);
                     }
-                  }}>
-                  
-                  {/* 日付 - ニューモルフィック背景付き */}
-                  <div className="relative flex flex-col items-center">
-                    <div className={`
-                      w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-sm sm:text-base font-medium transition-all duration-300
-                      ${isToday 
-                        ? 'bg-gray-100 text-blue-600 shadow-neumorphic-pressed' 
-                        : hasData 
-                          ? 'bg-gray-100 text-gray-700 shadow-neumorphic hover:shadow-neumorphic-hover' 
-                          : cell.getMonth() !== currentMonth.getMonth()
-                            ? 'text-gray-400 bg-gray-100'
-                            : 'text-gray-600 bg-gray-100 hover:shadow-neumorphic-soft'
-                      }
-                    `}>
-                      {cell.getDate()}
+                  }}
+                >
+                  <span className={dayButtonClass}>{cell.getDate()}</span>
+
+                  {pendingCount > 0 && (
+                    <span className="absolute right-3 top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] to-[rgba(255,120,148,0.9)] px-2 text-[10px] font-semibold text-white shadow-neumorphic-soft">
+                      {pendingCount}
+                    </span>
+                  )}
+
+                  {hasData && (
+                    <div className="mt-2 flex flex-col items-center">
+                      <span
+                        className="text-[10px] font-medium text-center sm:text-xs"
+                        style={{ color: (t?.net_total ?? 0) >= 0 ? 'var(--success)' : 'var(--destructive)' }}
+                      >
+                        {(t?.net_total ?? 0) >= 0 ? '+' : ''}{(t?.net_total ?? 0).toLocaleString()}
+                      </span>
+                      {!isToday && (
+                        <span className="mt-1 inline-flex h-1.5 w-8 items-center justify-center rounded-full bg-muted/70">
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ background: (t?.net_total ?? 0) >= 0 ? 'var(--success)' : 'var(--destructive)' }}
+                          />
+                        </span>
+                      )}
                     </div>
-                    
-                    {/* 収支インジケーター */}
-                    {hasData && !isToday && (
-                      <div className="mt-1 flex flex-col items-center">
-                        {/* 小さい丸 */}
-                        <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                          (t?.net_total ?? 0) < 0 ? 'bg-red-400' : 'bg-green-400'
-                        }`} />
-                        {/* トータル収支 */}
-                        <div className="text-[9px] sm:text-[10px] font-medium text-center leading-none mt-0.5">
-                          <div className={`${
-                            (t?.net_total ?? 0) < 0 ? 'text-red-500' : 'text-green-500'
-                          }`}>
-                            {(t?.net_total ?? 0) >= 0 ? '+' : ''}{(t?.net_total ?? 0).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* 今日の日付の場合の収支表示 */}
-                    {hasData && isToday && (
-                      <div className="mt-1 flex flex-col items-center">
-                        <div className="text-[9px] sm:text-[10px] font-medium text-center leading-none">
-                          <div className={`${
-                            (t?.net_total ?? 0) < 0 ? 'text-red-500' : 'text-green-500'
-                          }`}>
-                            {(t?.net_total ?? 0) >= 0 ? '+' : ''}{(t?.net_total ?? 0).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {/* 要確認インジケータ */}
-                    {pendingCount > 0 && (
-                      <div className="mt-1 text-[9px] sm:text-[10px] text-amber-600 font-medium">
-                        要確認{pendingCount > 1 ? ` ×${pendingCount}` : ''}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  )}
+                </button>
               );
             })}
           </div>
           {(!data || data.length === 0) && (
-            <div className="p-6 mt-4 text-sm text-gray-600 bg-gray-100 rounded-2xl shadow-inner">データがありません</div>
+            <div className="mt-4 rounded-[28px] border border-white/50 bg-white/80 px-5 py-4 text-sm text-muted-foreground shadow-neumorphic-soft">
+              データがありません
+            </div>
           )}
         </div>
       )}
 
       <Sheet open={!!detailDate} onOpenChange={(o) => !o && setDetailDate(null)}>
-        <SheetContent className="h-[85vh] sm:h-[70vh] overflow-hidden flex flex-col">
-          <SheetHeader className="text-lg font-semibold">
+        <SheetContent className="h-[85vh] sm:h-[70vh] overflow-hidden px-0">
+          <SheetHeader className="text-base font-semibold text-foreground">
             {detailDate} の明細
           </SheetHeader>
-          <div className="flex-1 overflow-auto px-4 pb-4">
+          <div className="flex-1 overflow-auto px-5 pb-6">
           {txLoading && (
-            <div className="text-sm text-muted-foreground">読み込み中...</div>
+            <div className="rounded-[24px] border border-white/50 bg-white/75 px-4 py-3 text-sm text-muted-foreground shadow-neumorphic-soft">
+              読み込み中...
+            </div>
           )}
           {txError && (
-            <div className="text-sm text-red-500">{txError}</div>
+            <div className="rounded-[24px] border border-white/50 bg-gradient-to-br from-[rgba(255,228,232,1)] via-[rgba(255,210,217,0.94)] to-[rgba(242,139,148,0.9)] px-4 py-3 text-sm text-foreground shadow-neumorphic-soft">
+              {txError}
+            </div>
           )}
           {!txLoading && !txError && (
             <div className="space-y-2">
@@ -572,12 +594,20 @@ export default function CalendarPage() {
                         {tx.type === "expense" ? "-" : "+"}{tx.amount}
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" className="h-7 px-2 border"
-                          onClick={() => setEditingTx(tx)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className={cn(chipButtonClass, "px-3")}
+                          onClick={() => setEditingTx(tx)}
+                        >
                           編集
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-7 px-2 border text-red-500"
-                          onClick={() => setDeleteTarget(tx)}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className={cn(chipButtonClass, "px-3 text-[color:var(--destructive)]")}
+                          onClick={() => setDeleteTarget(tx)}
+                        >
                           削除
                         </Button>
                       </div>
@@ -592,8 +622,13 @@ export default function CalendarPage() {
                     ))}
                     <div className="ml-auto flex gap-1">
                       {['👍','❤️','🎉'].map((e) => (
-                        <Button key={e} size="sm" variant="ghost" className="h-7 px-2 border"
-                          onClick={() => toggleReaction(tx.id, e)}>
+                        <Button
+                          key={e}
+                          size="sm"
+                          variant="ghost"
+                          className={cn(chipButtonClass, "px-3")}
+                          onClick={() => toggleReaction(tx.id, e)}
+                        >
                           {e}
                         </Button>
                       ))}
@@ -610,8 +645,12 @@ export default function CalendarPage() {
                             <div className="text-muted-foreground">{new Date(c.created_at).toLocaleString()}</div>
                             <div>{c.body}</div>
                           </div>
-                          <Button size="sm" variant="ghost" className="h-7 px-2 border"
-                            onClick={() => deleteComment(tx.id, c.id)}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className={cn(chipButtonClass, "px-3 text-[color:var(--destructive)]")}
+                            onClick={() => deleteComment(tx.id, c.id)}
+                          >
                             削除
                           </Button>
                         </div>
@@ -632,7 +671,13 @@ export default function CalendarPage() {
                           }
                         }}
                       />
-                      <Button size="sm" className="h-9" onClick={() => addComment(tx.id)}>投稿</Button>
+                      <Button
+                        size="sm"
+                        className="h-10 rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] px-4 text-white shadow-neumorphic-soft"
+                        onClick={() => addComment(tx.id)}
+                      >
+                        投稿
+                      </Button>
                     </div>
                   </div>
                 </Card>
@@ -681,7 +726,7 @@ export default function CalendarPage() {
           setDeleteTarget(null);
         }}
       />
-      </div>
+      </main>
     </div>
   );
 }

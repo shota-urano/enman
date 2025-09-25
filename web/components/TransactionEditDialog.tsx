@@ -215,34 +215,34 @@ export default function TransactionEditDialog({
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader className="text-base font-semibold">取引の編集</DialogHeader>
+      <DialogContent className="max-w-xl px-8 pb-8 pt-6">
+        <DialogHeader className="text-base font-semibold text-foreground">取引の編集</DialogHeader>
         {!transaction ? (
-          <div className="p-4 text-sm text-muted-foreground">取引を読み込んでいます...</div>
+          <div className="px-2 pb-4 text-sm text-muted-foreground">取引を読み込んでいます...</div>
         ) : (
-          <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5 px-2">
             {loadingOptions && (
               <div className="text-xs text-muted-foreground">選択肢を読み込み中...</div>
             )}
             {error && (
-              <div className="text-sm text-red-600" role="alert">
+              <div className="rounded-[24px] border border-white/50 bg-gradient-to-br from-[rgba(255,228,232,1)] via-[rgba(255,210,217,0.94)] to-[rgba(242,139,148,0.9)] px-4 py-2 text-sm text-foreground shadow-neumorphic-soft" role="alert">
                 {error}
               </div>
             )}
             {status && (
-              <div className="text-sm text-green-600" role="status">
+              <div className="rounded-[24px] border border-white/50 bg-gradient-to-br from-white via-[rgba(245,255,251,0.94)] to-[rgba(202,236,217,0.9)] px-4 py-2 text-sm text-foreground shadow-neumorphic-soft" role="status">
                 {status}
               </div>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700">種別</label>
+                <label className="text-sm font-medium text-muted-foreground">種別</label>
                 <Select
                   value={draft.kind}
                   onChange={(value) => update("kind", value as Kind)}
                   appearance="inset"
                   variant="neumorphic"
-                  className="rounded-2xl bg-transparent"
+                  className="mt-1"
                   options={[
                     { value: "expense", label: "支出" },
                     { value: "income", label: "収入" },
@@ -250,42 +250,34 @@ export default function TransactionEditDialog({
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700">日付</label>
+                <label className="text-sm font-medium text-muted-foreground">日付</label>
                 <DatePicker
                   value={draft.occurred_on}
                   onChange={(event) => update("occurred_on", event.target.value)}
-                  className="border-0 rounded-2xl px-4 py-3 w-full"
-                  style={{
-                    background: "#f0f0f0",
-                    boxShadow: "inset 8px 8px 16px #d0d0d0, inset -8px -8px 16px #ffffff",
-                  }}
+                  className="w-full"
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700">金額</label>
+                <label className="text-sm font-medium text-muted-foreground">金額</label>
                 <div className="relative">
                   <Input
                     type="number"
                     inputMode="numeric"
                     value={draft.amount}
                     onChange={(event) => update("amount", event.target.value)}
-                    className="border-0 rounded-2xl px-4 py-3 w-full pr-10"
-                    style={{
-                      background: "#f0f0f0",
-                      boxShadow: "inset 8px 8px 16px #d0d0d0, inset -8px -8px 16px #ffffff",
-                    }}
+                    className="pr-14"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">円</span>
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">円</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700">カテゴリ</label>
+                <label className="text-sm font-medium text-muted-foreground">カテゴリ</label>
                 <Select
                   value={draft.category_id}
                   onChange={(value) => update("category_id", value)}
                   appearance="inset"
                   variant="neumorphic"
-                  className="rounded-2xl bg-transparent"
+                  className="mt-1"
                   options={[
                     { value: "", label: "選択してください" },
                     ...filteredCategories.map((c) => ({ value: c.id, label: c.name })),
@@ -293,13 +285,13 @@ export default function TransactionEditDialog({
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-gray-700">アカウント</label>
+                <label className="text-sm font-medium text-muted-foreground">アカウント</label>
                 <Select
                   value={draft.account_id}
                   onChange={(value) => update("account_id", value)}
                   appearance="inset"
                   variant="neumorphic"
-                  className="rounded-2xl bg-transparent"
+                  className="mt-1"
                   options={[
                     { value: "", label: "選択してください" },
                     ...accounts.map((a) => ({ value: a.id, label: a.name })),
@@ -307,31 +299,23 @@ export default function TransactionEditDialog({
                 />
               </div>
               <div className="flex flex-col gap-2 sm:col-span-2">
-                <label className="text-sm font-medium text-gray-700">利用場所（任意）</label>
+                <label className="text-sm font-medium text-muted-foreground">利用場所（任意）</label>
                 <Input
                   value={draft.place}
                   onChange={(event) => update("place", event.target.value)}
-                  className="border-0 rounded-2xl px-4 py-3"
-                  style={{
-                    background: "#f0f0f0",
-                    boxShadow: "inset 8px 8px 16px #d0d0d0, inset -8px -8px 16px #ffffff",
-                  }}
+                  className="mt-1"
                 />
               </div>
               <div className="flex flex-col gap-2 sm:col-span-2">
-                <label className="text-sm font-medium text-gray-700">メモ（任意）</label>
+                <label className="text-sm font-medium text-muted-foreground">メモ（任意）</label>
                 <Input
                   value={draft.memo}
                   onChange={(event) => update("memo", event.target.value)}
-                  className="border-0 rounded-2xl px-4 py-3"
-                  style={{
-                    background: "#f0f0f0",
-                    boxShadow: "inset 8px 8px 16px #d0d0d0, inset -8px -8px 16px #ffffff",
-                  }}
+                  className="mt-1"
                 />
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-between pt-2">
+            <div className="flex flex-col justify-between gap-3 pt-2 sm:flex-row">
               <Button
                 type="button"
                 variant="destructive"
@@ -341,7 +325,7 @@ export default function TransactionEditDialog({
               >
                 削除する
               </Button>
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-end flex-1">
+              <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
                 <Button
                   type="button"
                   variant="ghost"
@@ -350,7 +334,15 @@ export default function TransactionEditDialog({
                 >
                   キャンセル
                 </Button>
-                <Button type="submit" disabled={submitting || deleting}>
+                <Button
+                  type="submit"
+                  disabled={submitting || deleting}
+                  className={
+                    submitting
+                      ? 'shadow-neumorphic-pressed text-muted-foreground'
+                      : 'bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] text-white shadow-neumorphic-soft'
+                  }
+                >
                   {submitting ? "更新中…" : "更新する"}
                 </Button>
               </div>

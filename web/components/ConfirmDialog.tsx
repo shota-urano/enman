@@ -36,10 +36,14 @@ export default function ConfirmDialog({
         }
       }}
     >
-      <DialogContent className="max-w-sm">
-        <DialogHeader className="text-base font-semibold">{title}</DialogHeader>
-        {description && <p className="px-4 pb-2 text-sm text-muted-foreground whitespace-pre-line">{description}</p>}
-        <div className="px-4 pb-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+      <DialogContent className="max-w-sm px-7 pb-7 pt-6">
+        <DialogHeader className="text-base font-semibold text-foreground">{title}</DialogHeader>
+        {description && (
+          <p className="px-1 pb-4 text-sm leading-relaxed text-muted-foreground whitespace-pre-line">
+            {description}
+          </p>
+        )}
+        <div className="flex flex-col-reverse gap-2 px-1 pb-2 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="ghost"

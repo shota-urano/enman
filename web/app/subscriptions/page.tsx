@@ -23,7 +23,13 @@ type Subscription = {
 
 export default function SubscriptionsPage() {
   return (
-    <Suspense fallback={<div className="p-6">読み込み中...</div>}>
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-md rounded-[24px] border border-white/60 bg-white/75 px-6 py-4 text-center text-sm text-muted-foreground shadow-neumorphic-soft">
+          読み込み中...
+        </div>
+      }
+    >
       <SubscriptionsContent />
     </Suspense>
   )
@@ -183,14 +189,19 @@ function SubscriptionsContent() {
 
   // 支払い確認は通知ページに移管
 
-  if (loading) return <div className="p-6">読み込み中...</div>
+  if (loading)
+    return (
+      <div className="mx-auto max-w-md rounded-[24px] border border-white/60 bg-white/75 px-6 py-4 text-center text-sm text-muted-foreground shadow-neumorphic-soft">
+        読み込み中...
+      </div>
+    )
 
   return (
     <div>
       <AppHeader title="サブスク" />
-      <div className="p-4 md:p-6 space-y-6 relative">
+      <main className="relative mx-auto max-w-5xl space-y-6 px-4 pb-28 pt-6 md:px-8">
         {error && (
-          <div className="text-red-600 text-sm" role="alert">
+          <div className="rounded-[24px] border border-white/60 bg-gradient-to-br from-[rgba(255,228,232,1)] via-[rgba(255,210,217,0.94)] to-[rgba(242,139,148,0.9)] px-4 py-3 text-sm text-foreground shadow-neumorphic-soft" role="alert">
             {error}
           </div>
         )}
@@ -198,19 +209,15 @@ function SubscriptionsContent() {
         {/* Header with Add Button */}
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xl font-bold text-gray-800">サブスクリプション管理</div>
-            <div className="text-sm text-gray-600 mt-1">
+            <div className="text-xl font-semibold text-foreground">サブスクリプション管理</div>
+            <div className="mt-1 text-sm text-muted-foreground">
               定期的な支払いを管理して、月間支出を把握しましょう
             </div>
           </div>
           {/* Desktop Add Button */}
-          <Button 
+          <Button
             onClick={() => setShowCreateModal(true)}
-            className="hidden sm:flex px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-2xl border-0 transition-all duration-200 items-center gap-2"
-            style={{
-              background: 'linear-gradient(145deg, #3b82f6, #2563eb)',
-              boxShadow: '8px 8px 16px #2563eb40, -8px -8px 16px #ffffff40'
-            }}
+            className="hidden items-center gap-2 rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] px-6 py-3 text-white shadow-neumorphic-soft transition-all duration-200 hover:shadow-neumorphic-hover sm:flex"
           >
             <span className="text-lg">+</span>
             新規追加
@@ -218,14 +225,10 @@ function SubscriptionsContent() {
         </div>
 
         {/* Mobile Floating Add Button */}
-        <Button 
+        <Button
           onClick={() => setShowCreateModal(true)}
-          className="sm:hidden fixed bottom-20 right-6 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full border-0 transition-all duration-200 flex items-center justify-center shadow-lg"
-          style={{
-            background: 'linear-gradient(145deg, #3b82f6, #2563eb)',
-            boxShadow: '12px 12px 24px #2563eb60, -8px -8px 16px #ffffff60',
-            zIndex: 40
-          }}
+          className="sm:hidden fixed bottom-24 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] text-2xl text-white shadow-neumorphic-soft transition-all duration-200 hover:shadow-neumorphic-hover"
+          style={{ zIndex: 40 }}
         >
           <span className="text-2xl">+</span>
         </Button>
@@ -233,13 +236,10 @@ function SubscriptionsContent() {
         {/* List */}
         <div className="space-y-4">
         {list.length === 0 && (
-          <div className="text-center py-12 bg-gray-50 rounded-3xl" style={{
-            background: 'linear-gradient(145deg, #f0f0f0, #ffffff)',
-            boxShadow: 'inset 10px 10px 20px #d0d0d0, inset -10px -10px 20px #ffffff'
-          }}>
-            <div className="text-gray-500 mb-2">📱</div>
-            <div className="text-sm text-gray-500">まだサブスクリプションが登録されていません</div>
-            <div className="text-xs text-gray-400 mt-1">上のフォームから新しいサブスクリプションを追加してください</div>
+          <div className="rounded-[32px] border border-white/60 bg-white/75 px-6 py-12 text-center shadow-neumorphic-soft">
+            <div className="mb-2 text-2xl">📱</div>
+            <div className="text-sm font-medium text-foreground">まだサブスクリプションが登録されていません</div>
+            <div className="mt-1 text-xs text-muted-foreground">上のフォームから新しいサブスクリプションを追加してください</div>
           </div>
         )}
         {list.map((s) => {
@@ -324,6 +324,8 @@ function SubscriptionsContent() {
           );
         })}
         </div>
+
+      </main>
 
       {/* Create Modal */}
       <div style={{ zIndex: 60 }}>
@@ -523,7 +525,6 @@ function SubscriptionsContent() {
       </div>
 
       {/* 支払い確認ダイアログは通知ページに移管 */}
-      </div>
     </div>
   )
 }
