@@ -64,9 +64,9 @@ function SubscriptionsContent() {
           fetch("/api/accounts", { cache: "no-store" }),
           fetch("/api/subscriptions", { cache: "no-store" }),
         ])
-        if (!catsRes.ok) throw new Error("Failed to load categories")
-        if (!acctsRes.ok) throw new Error("Failed to load accounts")
-        if (!subsRes.ok) throw new Error("Failed to load subscriptions")
+        if (!catsRes.ok) throw new Error('カテゴリの取得に失敗しました')
+        if (!acctsRes.ok) throw new Error('アカウントの取得に失敗しました')
+        if (!subsRes.ok) throw new Error('サブスクの取得に失敗しました')
         const cats = (await catsRes.json()) as Category[]
         const accts = (await acctsRes.json()) as Account[]
         const subs = (await subsRes.json()) as Subscription[]
@@ -124,13 +124,13 @@ function SubscriptionsContent() {
             requires_confirmation: requiresConfirmation,
           }),
           })
-          if (!res.ok) throw new Error((await res.text()) || "Failed to create")
+          if (!res.ok) throw new Error((await res.text()) || '作成に失敗しました')
           resetCreate()
           setShowCreateModal(false)
           await reload()
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e)
-          setError(msg || "failed to create")
+          setError(msg || '作成に失敗しました')
         }
       })()
     })
@@ -143,11 +143,11 @@ function SubscriptionsContent() {
       void (async () => {
         try {
           const res = await fetch(`/api/subscriptions/${id}`, { method: "DELETE" })
-          if (!res.ok) throw new Error((await res.text()) || "Failed to delete")
+          if (!res.ok) throw new Error((await res.text()) || '削除に失敗しました')
           await reload()
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e)
-          setError(msg || "failed to delete")
+          setError(msg || '削除に失敗しました')
         }
       })()
     })
@@ -170,12 +170,12 @@ function SubscriptionsContent() {
               note: input.note,
             }),
           })
-          if (!res.ok) throw new Error((await res.text()) || "Failed to update")
+          if (!res.ok) throw new Error((await res.text()) || '更新に失敗しました')
           setEdit(null)
           await reload()
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e)
-          setError(msg || "failed to update")
+          setError(msg || '更新に失敗しました')
         }
       })()
     })

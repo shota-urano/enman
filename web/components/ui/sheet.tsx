@@ -11,7 +11,7 @@ const SheetContext = React.createContext<SheetContextValue | null>(null)
 
 export function useSheet() {
   const ctx = React.useContext(SheetContext)
-  if (!ctx) throw new Error("useSheet must be used within <Sheet>")
+  if (!ctx) throw new Error('useSheet は <Sheet> の内部で使用してください')
   return ctx
 }
 

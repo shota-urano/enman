@@ -66,7 +66,7 @@ describe('POST /api/categories', () => {
   it('returns 403 when household scope missing', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
+    assertHouseholdMember.mockRejectedValue(forbidden('世帯スコープが必要です'))
 
     const req = makeReq({ name: 'Food', type: 'expense', sort_order: 1 })
     const res = await route.POST(req)

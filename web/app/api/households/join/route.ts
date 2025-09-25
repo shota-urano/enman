@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
     const json = (await req.json().catch(() => ({}))) as Partial<Body>
     if (!json.token || typeof json.token !== 'string') {
-      throw badRequest('token is required and must be a string')
+      throw badRequest('token は必須の文字列です')
     }
 
     const payload = inviteService.verifyToken(json.token)

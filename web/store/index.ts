@@ -53,7 +53,7 @@ export const useTx = create<TxState>()((set, get) => ({
   transactions: [],
   async loadMonth(m: string) {
     const res = await fetch(`/api/transactions?month=${encodeURIComponent(m)}`)
-    if (!res.ok) throw new Error('Failed to load transactions')
+    if (!res.ok) throw new Error('取引の取得に失敗しました')
     const data: Transaction[] = await res.json()
     set({ month: m, transactions: data })
   },
@@ -71,7 +71,7 @@ export const useTx = create<TxState>()((set, get) => ({
         memo: input.memo,
       }),
     })
-    if (!res.ok) throw new Error('Failed to create transaction')
+    if (!res.ok) throw new Error('取引の作成に失敗しました')
     const created: Transaction = await res.json()
     const month = get().month
     // If current month matches created tx month, append optimistically
@@ -86,7 +86,7 @@ export const useTx = create<TxState>()((set, get) => ({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount }),
     })
-    if (!res.ok) throw new Error('Failed to confirm subscription')
+    if (!res.ok) throw new Error('サブスクの確認に失敗しました')
     // refresh current month after confirm to reflect new transaction
     const m = get().month
     if (m) await get().loadMonth(m)

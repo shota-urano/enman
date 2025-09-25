@@ -20,7 +20,7 @@ export class McpClient {
 
   constructor(cfg?: Partial<McpClientConfig>) {
     const baseUrl = cfg?.baseUrl ?? serverEnv.MCP_ENDPOINT
-    if (!baseUrl) throw new Error("MCP_ENDPOINT is not configured")
+    if (!baseUrl) throw new Error("MCP_ENDPOINT が設定されていません")
     this.baseUrl = baseUrl.replace(/\/$/, "")
     this.token = cfg?.token ?? serverEnv.MCP_AUTH_TOKEN
     this.timeoutMs = cfg?.timeoutMs ?? 4000

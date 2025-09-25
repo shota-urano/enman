@@ -63,19 +63,19 @@ export const inviteService = {
       serverEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
       'dev-invite-secret'
     const parts = token.split('.')
-    if (parts.length !== 3) throw badRequest('Invalid token format')
+    if (parts.length !== 3) throw badRequest('トークンの形式が不正です')
     const [h, p, s] = parts
     const expectedSig = sign(`${h}.${p}`, secret)
-    if (s !== expectedSig) throw badRequest('Invalid token signature')
+    if (s !== expectedSig) throw badRequest('トークンの署名が不正です')
     const json = Buffer.from(p.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')
     let payload: InvitePayload
     try {
       payload = JSON.parse(json)
     } catch {
-      throw badRequest('Invalid token payload')
+      throw badRequest('トークンの内容が不正です')
     }
     const now = Math.floor(Date.now() / 1000)
-    if (payload.exp < now) throw badRequest('Token expired')
+    if (payload.exp < now) throw badRequest('トークンの有効期限が切れています')
     return payload
   },
 }

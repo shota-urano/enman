@@ -67,7 +67,7 @@ describe('POST /api/households/join', () => {
   it('returns 400 when token is invalid', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
-    inviteService.verifyToken.mockImplementation(() => { throw badRequest('invalid') })
+    inviteService.verifyToken.mockImplementation(() => { throw badRequest('不正です') })
     const req = makeReq({ token: 'bad' })
     const res = await route.POST(req)
     expect(res.status).toBe(400)

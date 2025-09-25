@@ -67,7 +67,7 @@ describe('PATCH /api/transactions/:id', () => {
   it('returns 403 when household scope missing', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
+    assertHouseholdMember.mockRejectedValue(forbidden('世帯スコープが必要です'))
 
     const req = makeReq({ amount: 3000 })
     const res = await route.PATCH(req, { params: Promise.resolve({ id: 't-1' }) })
@@ -101,7 +101,6 @@ describe('PATCH /api/transactions/:id', () => {
     expect(transactionsRepository.update).toHaveBeenCalledWith('h-1', 't-1', {
       amount: 3000,
       memo: 'updated memo',
-    }, 'u-1')
+    }, 'u-1', { accessToken: 't' })
   })
 })
-

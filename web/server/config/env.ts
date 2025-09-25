@@ -5,7 +5,7 @@ function get(name: string, required = false): string | undefined {
   const v = process.env[name]
   if (required && !v) {
     // Throwing here makes missing envs obvious during server start/tests
-    throw new Error(`Missing required env: ${name}`)
+    throw new Error(`必須の環境変数が未設定です: ${name}`)
   }
   return v
 }

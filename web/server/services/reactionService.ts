@@ -35,9 +35,9 @@ export const reactionService = {
       type PgError = { code?: string; message?: string; details?: { code?: string } }
       const err = e as PgError
       const code = err?.code || err?.details?.code
-      const message = err?.message || 'Unique constraint violated'
+      const message = err?.message || '一意制約に違反しました'
       if (code === '23505' || /duplicate key/i.test(message)) {
-        throw conflict('Reaction already exists', e)
+        throw conflict('リアクションは既に存在しています', e)
       }
       throw e
     }

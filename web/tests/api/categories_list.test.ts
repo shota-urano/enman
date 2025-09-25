@@ -48,7 +48,7 @@ describe('GET /api/categories', () => {
   it('returns 403 when household scope missing', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
+    assertHouseholdMember.mockRejectedValue(forbidden('世帯スコープが必要です'))
     const req = makeReq()
     const res = await route.GET(req)
     expect(res.status).toBe(403)

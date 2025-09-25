@@ -50,7 +50,7 @@ describe('DELETE /api/transactions/:id', () => {
   it('returns 403 when household scope missing', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
+    assertHouseholdMember.mockRejectedValue(forbidden('世帯スコープが必要です'))
 
     const req = makeReq()
     const res = await route.DELETE(req, { params: Promise.resolve({ id: 't-1' }) })
@@ -68,7 +68,6 @@ describe('DELETE /api/transactions/:id', () => {
     const req = makeReq({ 'x-household-id': 'h-1' })
     const res = await route.DELETE(req, { params: Promise.resolve({ id: 't-1' }) })
     expect(res.status).toBe(204)
-    expect(transactionsRepository.remove).toHaveBeenCalledWith('h-1', 't-1')
+    expect(transactionsRepository.remove).toHaveBeenCalledWith('h-1', 't-1', { accessToken: 't' })
   })
 })
-

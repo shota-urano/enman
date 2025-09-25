@@ -25,7 +25,7 @@ export const transactionsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Transaction not found')
+    if (!data) throw new Error('取引が見つかりません')
     return data as Transaction
   },
   async remove(
@@ -43,7 +43,7 @@ export const transactionsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Transaction not found')
+    if (!data) throw new Error('取引が見つかりません')
   },
   async update(
     householdId: string,
@@ -64,7 +64,7 @@ export const transactionsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Transaction not found')
+    if (!data) throw new Error('取引が見つかりません')
     return data as Transaction
   },
   async create(
@@ -92,7 +92,7 @@ export const transactionsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Failed to create transaction')
+    if (!data) throw new Error('取引の作成に失敗しました')
     return data as Transaction
   },
   async listByMonth(

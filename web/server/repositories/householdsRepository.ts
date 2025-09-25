@@ -22,7 +22,7 @@ export const householdsRepository = {
       .select('id, name')
       .single()
     if (hErr) throw hErr
-    if (!hh) throw new Error('Failed to create household')
+    if (!hh) throw new Error('世帯の作成に失敗しました')
 
     const { error: mErr } = await supabase
       .from('household_members')
@@ -81,7 +81,7 @@ export const householdsRepository = {
       .select('user_id, role, approved, joined_at, created_at')
       .single()
     if (error) throw error
-    if (!data) throw new Error('Failed to update approval')
+    if (!data) throw new Error('承認状態の更新に失敗しました')
     return data as HouseholdMember
   },
   async isOwner(householdId: string, userId: string): Promise<boolean> {

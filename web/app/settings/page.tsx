@@ -67,11 +67,11 @@ export default function SettingsPage() {
       setMemberError(null)
       try {
         const res = await fetch('/api/households/members', { cache: 'no-store' })
-        if (!res.ok) throw new Error('failed to load members')
+        if (!res.ok) throw new Error('メンバーの取得に失敗しました')
         const list = await res.json()
         setMembers(Array.isArray(list) ? list : [])
       } catch (e: unknown) {
-        setMemberError(e instanceof Error ? e.message : 'load error')
+        setMemberError(e instanceof Error ? e.message : 'エラーが発生しました')
       } finally {
         setLoadingMembers(false)
       }
@@ -86,7 +86,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ approved }),
       })
-      if (!res.ok) throw new Error('update failed')
+      if (!res.ok) throw new Error('更新に失敗しました')
       const updated = await res.json()
       setMembers((prev) => prev.map((m) => (m.user_id === userId ? updated : m)))
     } catch {
@@ -98,7 +98,7 @@ export default function SettingsPage() {
     setLoadingInvite(true)
     try {
       const res = await fetch("/api/households/invite", { method: "POST" })
-      if (!res.ok) throw new Error("Failed to create invite")
+      if (!res.ok) throw new Error('招待コードの作成に失敗しました')
       const data = await res.json()
       // expecting { token: string }
       setInviteToken(data?.token ?? null)

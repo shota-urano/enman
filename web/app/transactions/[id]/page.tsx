@@ -30,7 +30,7 @@ export default function TransactionDetailPage() {
       setError(null);
       try {
         const res = await fetch(`/api/transactions/${params.id}`, { cache: "no-store" });
-        if (!res.ok) throw new Error(`failed: ${res.status}`);
+        if (!res.ok) throw new Error(`取引の取得に失敗しました (status: ${res.status})`);
         const data = (await res.json()) as Tx;
         setTx(data);
       } catch (e: unknown) {

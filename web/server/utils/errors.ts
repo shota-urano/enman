@@ -23,23 +23,23 @@ export function badRequest(message: string, details?: unknown) {
   return new AppError('VALIDATION_ERROR', message, 400, details)
 }
 
-export function unauthorized(message = 'Unauthorized') {
+export function unauthorized(message = '認証が必要です') {
   return new AppError('UNAUTHORIZED', message, 401)
 }
 
-export function forbidden(message = 'Forbidden') {
+export function forbidden(message = '権限がありません') {
   return new AppError('FORBIDDEN', message, 403)
 }
 
-export function notFound(message = 'Not Found') {
+export function notFound(message = 'リソースが見つかりません') {
   return new AppError('NOT_FOUND', message, 404)
 }
 
-export function conflict(message = 'Conflict', details?: unknown) {
+export function conflict(message = '競合が発生しました', details?: unknown) {
   return new AppError('CONFLICT', message, 409, details)
 }
 
-export function systemError(message = 'System Error', details?: unknown) {
+export function systemError(message = 'システムエラーが発生しました', details?: unknown) {
   return new AppError('SYSTEM_ERROR', message, 500, details)
 }
 

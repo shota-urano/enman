@@ -43,7 +43,7 @@ export const commentsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Failed to create comment')
+    if (!data) throw new Error('コメントの作成に失敗しました')
     return data as Comment
   },
   async remove(
@@ -62,6 +62,6 @@ export const commentsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Comment not found or not owned by user')
+    if (!data) throw new Error('コメントが見つからないか権限がありません')
   },
 }

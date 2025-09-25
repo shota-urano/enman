@@ -24,7 +24,7 @@ async function postOnboarding(body: { invite_token?: string; household_name?: st
   })
   const json = await res.json().catch(() => ({}))
   if (!res.ok) {
-    const msg = (json && json.message) || `Onboarding failed (${res.status})`
+    const msg = (json && json.message) || `オンボーディングに失敗しました (${res.status})`
     throw new Error(msg)
   }
   return json as { action: 'joined' | 'created' | 'noop'; household_id: string }

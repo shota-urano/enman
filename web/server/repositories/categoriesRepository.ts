@@ -37,7 +37,7 @@ export const categoriesRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Failed to create category')
+    if (!data) throw new Error('カテゴリの作成に失敗しました')
     return data as Category
   },
   async update(
@@ -55,7 +55,7 @@ export const categoriesRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Category not found')
+    if (!data) throw new Error('カテゴリが見つかりません')
     return data as Category
   },
 }

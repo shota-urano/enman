@@ -48,7 +48,7 @@ export const notificationsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Failed to mark notification as read')
+    if (!data) throw new Error('通知の既読更新に失敗しました')
     return data as Notification
   },
 }

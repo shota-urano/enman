@@ -40,7 +40,7 @@ export const subscriptionsRepository = {
       .single()
 
     if (subErr) throw subErr
-    if (!sub) throw new Error('Subscription not found')
+    if (!sub) throw new Error('サブスクが見つかりません')
 
     type SubRow = { id: string; expected_amount: number; billing_day: number }
     const subRow = sub as unknown as SubRow
@@ -75,7 +75,7 @@ export const subscriptionsRepository = {
     const createdId: string | undefined = Array.isArray(rpcData)
       ? (rpcData[0] as unknown as RpcId | undefined)?.id
       : (rpcData as unknown as RpcId | null)?.id
-    if (!createdId) throw new Error('Failed to confirm subscription')
+    if (!createdId) throw new Error('サブスクの確認に失敗しました')
 
     // Fetch created transaction to return full object
     const { data: tx, error: txErr } = await supabase
@@ -87,7 +87,7 @@ export const subscriptionsRepository = {
       .eq('id', createdId)
       .single()
     if (txErr) throw txErr
-    if (!tx) throw new Error('Confirmed transaction not found')
+    if (!tx) throw new Error('確認済みの取引が見つかりません')
     return tx as import('./transactionsRepository').Transaction
   },
   async remove(householdId: string, id: string): Promise<void> {
@@ -101,7 +101,7 @@ export const subscriptionsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Subscription not found')
+    if (!data) throw new Error('サブスクが見つかりません')
   },
   async create(
     householdId: string,
@@ -135,7 +135,7 @@ export const subscriptionsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Failed to create subscription')
+    if (!data) throw new Error('サブスクの作成に失敗しました')
     return data as Subscription
   },
   async update(
@@ -162,7 +162,7 @@ export const subscriptionsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Subscription not found')
+    if (!data) throw new Error('サブスクが見つかりません')
     return data as Subscription
   },
 }

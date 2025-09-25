@@ -15,7 +15,7 @@ async function postJson<T = unknown>(path: string, body: Json): Promise<T> {
   })
   const json = (await res.json().catch(() => ({}))) as unknown
   if (!res.ok) {
-    const msg = (json as { message?: string })?.message || `Request failed: ${res.status}`
+    const msg = (json as { message?: string })?.message || `リクエストが失敗しました: ${res.status}`
     throw new Error(msg)
   }
   return json as T

@@ -14,8 +14,8 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url)
     const date = url.searchParams.get('date') || undefined
-    if (!date) throw badRequest('date is required')
-    if (!isDate(date)) throw badRequest('date must be YYYY-MM-DD')
+    if (!date) throw badRequest('date は必須です')
+    if (!isDate(date)) throw badRequest('date は YYYY-MM-DD 形式で指定してください')
 
     const list = await reportsRepository.getPendingConfirmList(session.householdId!, date, session.token)
     return NextResponse.json(list, { status: 200 })

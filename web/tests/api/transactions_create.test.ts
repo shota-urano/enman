@@ -75,7 +75,7 @@ describe('POST /api/transactions', () => {
   it('returns 403 when household scope missing', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
+    assertHouseholdMember.mockRejectedValue(forbidden('世帯スコープが必要です'))
 
     const req = makeReq({
       kind: 'expense',
@@ -121,7 +121,7 @@ describe('POST /api/transactions', () => {
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json).toEqual(tx)
-    expect(transactionsRepository.create).toHaveBeenCalledWith('h-1', 'u-1', input)
+    expect(transactionsRepository.create).toHaveBeenCalledWith('h-1', 'u-1', input, { accessToken: 't' })
   })
 
   it('accepts valid payload via schema', () => {

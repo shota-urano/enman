@@ -48,7 +48,7 @@ describe('POST /api/notifications/:id/read', () => {
   it('returns 403 when household scope missing', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
+    assertHouseholdMember.mockRejectedValue(forbidden('世帯スコープが必要です'))
     const req = makeReq('https://example.com/api/notifications/n-1/read')
     const res = await route.POST(req, { params: Promise.resolve({ id: 'n-1' }) })
     expect(res.status).toBe(403)

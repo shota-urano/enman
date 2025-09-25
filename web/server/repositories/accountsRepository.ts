@@ -37,7 +37,7 @@ export const accountsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Failed to create account')
+    if (!data) throw new Error('アカウントの作成に失敗しました')
     return data as Account
   },
   async update(
@@ -55,7 +55,7 @@ export const accountsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Failed to update account')
+    if (!data) throw new Error('アカウントの更新に失敗しました')
     return data as Account
   },
 }

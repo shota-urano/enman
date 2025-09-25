@@ -57,7 +57,7 @@ describe('POST /api/comments', () => {
   it('returns 403 when household scope missing', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
+    assertHouseholdMember.mockRejectedValue(forbidden('世帯スコープが必要です'))
     const req = makeReq('http://test.local/api/comments', { transaction_id: 'tx-1', body: 'hi' })
     const res = await route.POST(req)
     expect(res.status).toBe(403)

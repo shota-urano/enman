@@ -30,11 +30,11 @@ function extractBearerToken(req: NextRequest): string | undefined {
 
 export async function getSession(req: NextRequest): Promise<Session> {
   const token = extractBearerToken(req)
-  if (!token) throw unauthorized('Missing auth token')
+  if (!token) throw unauthorized('認証トークンが見つかりません')
 
   const supabase = createSupabaseAdmin()
   const { data, error } = await supabase.auth.getUser(token)
-  if (error || !data?.user) throw unauthorized('Invalid session')
+  if (error || !data?.user) throw unauthorized('セッションが無効です')
 
   // Optionally receive household scope from header (API レイヤでの二重化用)
   let householdId = req.headers.get('x-household-id') || undefined
@@ -67,5 +67,5 @@ export async function getSession(req: NextRequest): Promise<Session> {
 
 export async function assertHouseholdMember(session: Session) {
   if (!session?.userId) throw unauthorized()
-  if (!session.householdId) throw forbidden('household scope required')
+  if (!session.householdId) throw forbidden('世帯スコープが必要です')
 }

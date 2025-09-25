@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     const transactionId = url.searchParams.get('transaction_id') || undefined
 
     if (!transactionId) {
-      throw badRequest('transaction_id is required')
+      throw badRequest('transaction_id は必須です')
     }
 
     const list = await commentsRepository.listByTransaction(

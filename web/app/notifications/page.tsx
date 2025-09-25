@@ -80,7 +80,7 @@ function NotificationsContent() {
     try {
       const q = opts?.unread ?? onlyUnread ? "?read=false" : "";
       const res = await fetch(`/api/notifications${q}`, { cache: "no-store" });
-      if (!res.ok) throw new Error(`failed: ${res.status}`);
+      if (!res.ok) throw new Error(`通知の取得に失敗しました (status: ${res.status})`);
       const data = (await res.json()) as Notification[];
       setList(Array.isArray(data) ? data : []);
     } catch (e: unknown) {
@@ -109,7 +109,7 @@ function NotificationsContent() {
   const markRead = async (id: string) => {
     try {
       const res = await fetch(`/api/notifications/${id}/read`, { method: "POST" });
-      if (!res.ok) throw new Error("mark read failed");
+      if (!res.ok) throw new Error('通知の既読更新に失敗しました');
       // Update local state
       setList((prev) => prev.map((x) => (x.id === id ? { ...x, read: true } : x)));
     } catch {
@@ -331,7 +331,7 @@ function NotificationsContent() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(amount ? { amount } : {}),
               });
-              if (!res.ok) throw new Error("confirm failed");
+              if (!res.ok) throw new Error('支払いの登録に失敗しました');
               // Mark notification as read
               try { await fetch(`/api/notifications/${confirm.nId}/read`, { method: "POST" }); } catch {}
               show("支払いを登録しました", "success");

@@ -52,7 +52,7 @@ describe('POST /api/subscriptions/:id/confirm', () => {
   it('returns 403 when household scope missing', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
+    assertHouseholdMember.mockRejectedValue(forbidden('世帯スコープが必要です'))
 
     const req = makeReq()
     const res = await route.POST(req, { params: Promise.resolve({ id: 's-1' }) })
@@ -82,7 +82,6 @@ describe('POST /api/subscriptions/:id/confirm', () => {
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json).toEqual(tx)
-    expect(subscriptionsRepository.confirm).toHaveBeenCalledWith('h-1', 's-1', { amount: 1500, userId: 'u-1' })
+    expect(subscriptionsRepository.confirm).toHaveBeenCalledWith('h-1', 's-1', { amount: 1500, userId: 'u-1', accessToken: 't' })
   })
 })
-

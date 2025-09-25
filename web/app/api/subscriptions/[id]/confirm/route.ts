@@ -9,7 +9,7 @@ function parseConfirmBody(raw: unknown): ConfirmBody {
   if (raw && typeof raw === 'object') {
     const rec = raw as Record<string, unknown>
     if (rec.amount === undefined) return {}
-    if (typeof rec.amount !== 'number') throw badRequest('amount must be a number')
+    if (typeof rec.amount !== 'number') throw badRequest('amount は数値で指定してください')
     return { amount: rec.amount }
   }
   return {}

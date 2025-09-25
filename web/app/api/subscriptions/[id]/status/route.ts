@@ -20,7 +20,7 @@ export async function GET(
     const date = url.searchParams.get('date') || ''
     let month: string
     if (date) {
-      if (!isDate(date)) throw badRequest('date must be YYYY-MM-DD')
+      if (!isDate(date)) throw badRequest('date は YYYY-MM-DD 形式で指定してください')
       month = date.slice(0, 7) + '-01'
     } else {
       const now = new Date()

@@ -14,12 +14,12 @@ export async function POST(
     const { userId } = await params
     const json = await req.json().catch(() => ({})) as { approved?: boolean }
     if (typeof json.approved !== 'boolean') {
-      throw badRequest('approved must be boolean')
+      throw badRequest('approved は真偽値で指定してください')
     }
 
     // Only owner can approve/unapprove
     const isOwner = await householdsRepository.isOwner(session.householdId!, session.userId)
-    if (!isOwner) throw forbidden('owner only')
+    if (!isOwner) throw forbidden('オーナーのみ操作可能です')
 
     const updated = await householdsRepository.setApproved(session.householdId!, userId, json.approved)
     return NextResponse.json(updated, { status: 200 })

@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
     const json = (await req.json().catch(() => ({}))) as Partial<Body>
     if (json.email !== undefined && typeof json.email !== 'string') {
-      throw badRequest('email must be a string if provided')
+      throw badRequest('email を指定する場合は文字列で入力してください')
     }
 
     const token = inviteService.generateToken(session.householdId!, session.userId, json.email)

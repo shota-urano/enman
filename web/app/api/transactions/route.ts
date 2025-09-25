@@ -26,13 +26,13 @@ export async function GET(req: NextRequest) {
     const kind = kindParam === 'income' || kindParam === 'expense' ? kindParam : undefined
 
     if (!month && !date) {
-      throw badRequest('month or date is required')
+      throw badRequest('month または date を指定してください')
     }
     if (month && !isMonth(month)) {
-      throw badRequest('month must be YYYY-MM')
+      throw badRequest('month は YYYY-MM 形式で指定してください')
     }
     if (date && !isDate(date)) {
-      throw badRequest('date must be YYYY-MM-DD')
+      throw badRequest('date は YYYY-MM-DD 形式で指定してください')
     }
 
     // When date is specified, return UI-optimized shape for the detail modal.

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const hasInvite = typeof json.invite_token === 'string' && json.invite_token.trim() !== ''
     const hasName = typeof json.household_name === 'string' && json.household_name.trim() !== ''
     if ((hasInvite && hasName) || (!hasInvite && !hasName)) {
-      throw badRequest('Provide either invite_token or household_name')
+      throw badRequest('invite_token と household_name のいずれか一方のみを指定してください')
     }
 
     const supabase = createSupabaseAdmin()

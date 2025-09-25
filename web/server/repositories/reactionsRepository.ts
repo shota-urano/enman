@@ -61,7 +61,7 @@ export const reactionsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Failed to create reaction')
+    if (!data) throw new Error('リアクションの作成に失敗しました')
     return data as Reaction
   },
 
@@ -81,7 +81,7 @@ export const reactionsRepository = {
       .single()
 
     if (error) throw error
-    if (!data) throw new Error('Reaction not found or not owned by user')
+    if (!data) throw new Error('リアクションが見つからないか権限がありません')
   },
 }
 

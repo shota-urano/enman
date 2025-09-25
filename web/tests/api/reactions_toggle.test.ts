@@ -53,7 +53,7 @@ describe('POST /api/reactions/toggle', () => {
   it('returns 403 when household scope missing', async () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
-    assertHouseholdMember.mockRejectedValue(forbidden('household scope required'))
+    assertHouseholdMember.mockRejectedValue(forbidden('世帯スコープが必要です'))
     const req = makeReq({ transaction_id: 'tx-1', emoji: '👍' })
     const res = await route.POST(req)
     expect(res.status).toBe(403)
@@ -113,7 +113,7 @@ describe('POST /api/reactions/toggle', () => {
     const session: Session = { userId: 'u-1', token: 't', householdId: 'h-1' }
     getSession.mockResolvedValue(session)
     assertHouseholdMember.mockResolvedValue()
-    reactionService.toggle.mockRejectedValue(conflict('Reaction already exists'))
+    reactionService.toggle.mockRejectedValue(conflict('リアクションは既に存在しています'))
 
     const req = makeReq({ transaction_id: 'tx-1', emoji: '👍' }, { 'x-household-id': 'h-1' })
     const res = await route.POST(req)

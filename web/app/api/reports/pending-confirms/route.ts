@@ -14,8 +14,8 @@ export async function GET(req: NextRequest) {
 
     const url = new URL(req.url)
     const month = url.searchParams.get('month') || undefined
-    if (!month) throw badRequest('month is required')
-    if (!isMonth(month)) throw badRequest('month must be YYYY-MM')
+    if (!month) throw badRequest('month は必須です')
+    if (!isMonth(month)) throw badRequest('month は YYYY-MM 形式で指定してください')
 
     const data = await reportsRepository.getPendingConfirmCounts(session.householdId!, month, session.token)
     return NextResponse.json(data, { status: 200 })
