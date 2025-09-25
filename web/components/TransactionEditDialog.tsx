@@ -126,7 +126,7 @@ export default function TransactionEditDialog({
   const deleteDescription = useMemo(() => {
     if (!transaction) return "この取引を削除しますか？"
     const label = transaction.type === "expense" ? "支出" : "収入"
-    return `${transaction.occurred_on} の${label} ¥${transaction.amount.toLocaleString()}を削除します。この操作は取り消せません。`
+    return `${transaction.date} の${label} ¥${transaction.amount.toLocaleString()}を削除します。この操作は取り消せません。`
   }, [transaction])
 
   function update<K extends keyof Draft>(key: K, value: Draft[K]) {
