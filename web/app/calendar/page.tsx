@@ -465,38 +465,48 @@ export default function CalendarPage() {
               const isToday = new Date().toDateString() === cell.toDateString();
               const pendingCount = pendingByDate.get(key) ?? 0;
               
-              const dayButtonClass = cn(
-                "flex h-11 w-11 items-center justify-center rounded-[26px] text-sm font-semibold transition-all duration-200 sm:h-14 sm:w-14 sm:text-base",
-                isToday
-                  ? "bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] text-white shadow-neumorphic-hover"
-                  : hasData
-                    ? "bg-white/85 text-foreground shadow-neumorphic-soft hover:shadow-neumorphic-hover"
-                    : cell.getMonth() === currentMonth.getMonth()
-                      ? "bg-white/70 text-muted-foreground shadow-neumorphic-soft hover:shadow-neumorphic-hover"
-                      : "bg-transparent text-muted-foreground/70",
-              );
-
               const canInteract = hasData || pendingCount > 0;
+              const dayContent = isToday || canInteract
+                ? (
+                    <span
+                      className={cn(
+                        "flex h-11 w-11 items-center justify-center rounded-[26px] text-sm font-semibold transition-all duration-200 sm:h-14 sm:w-14 sm:text-base",
+                        isToday
+                          ? "bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] text-white shadow-neumorphic-hover"
+                          : hasData
+                            ? "bg-white/85 text-foreground shadow-neumorphic-soft hover:shadow-neumorphic-hover"
+                            : "bg-white/70 text-muted-foreground shadow-neumorphic-soft hover:shadow-neumorphic-hover",
+                      )}
+                    >
+                      {cell.getDate()}
+                    </span>
+                  )
+                : (
+                    <span className="text-xs font-medium text-muted-foreground sm:text-sm">
+                      {cell.getDate()}
+                    </span>
+                  );
+
+              const Wrapper: React.ElementType = canInteract || isToday ? "button" : "div";
 
               return (
-                <button
+                <Wrapper
                   key={idx}
-                  type="button"
-                  disabled={!canInteract}
+                  type={Wrapper === "button" ? "button" : undefined}
+                  disabled={Wrapper === "button" && !canInteract ? true : undefined}
                   className={cn(
                     "relative flex h-20 flex-col items-center justify-start rounded-[30px] border border-transparent p-2 transition-all duration-200 sm:h-24",
-                    canInteract && "cursor-pointer hover:border-white/60 hover:bg-white/60 hover:shadow-neumorphic-soft",
-                    !canInteract && "cursor-default",
+                    canInteract || isToday
+                      ? "cursor-pointer hover:border-white/60 hover:bg-white/60 hover:shadow-neumorphic-soft"
+                      : "cursor-default border-none",
                   )}
-                  onClick={() => {
-                    if (hasData) {
-                      openDetail(key);
-                    } else if (pendingCount > 0) {
-                      router.push(`/notifications?date=${key}`);
-                    }
-                  }}
+                  onClick={Wrapper === "button" ? () => {
+                    if (!canInteract) return;
+                    if (hasData) openDetail(key);
+                    else router.push(`/notifications?date=${key}`);
+                  } : undefined}
                 >
-                  <span className={dayButtonClass}>{cell.getDate()}</span>
+                  {dayContent}
 
                   {pendingCount > 0 && (
                     <span className="absolute right-3 top-2 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] to-[rgba(255,120,148,0.9)] px-2 text-[10px] font-semibold text-white shadow-neumorphic-soft">
@@ -505,24 +515,11 @@ export default function CalendarPage() {
                   )}
 
                   {hasData && (
-                    <div className="mt-2 flex flex-col items-center">
-                      <span
-                        className="text-[10px] font-medium text-center sm:text-xs"
-                        style={{ color: (t?.net_total ?? 0) >= 0 ? 'var(--success)' : 'var(--destructive)' }}
-                      >
-                        {(t?.net_total ?? 0) >= 0 ? '+' : ''}{(t?.net_total ?? 0).toLocaleString()}
-                      </span>
-                      {!isToday && (
-                        <span className="mt-1 inline-flex h-1.5 w-8 items-center justify-center rounded-full bg-muted/70">
-                          <span
-                            className="h-1.5 w-1.5 rounded-full"
-                            style={{ background: (t?.net_total ?? 0) >= 0 ? 'var(--success)' : 'var(--destructive)' }}
-                          />
-                        </span>
-                      )}
+                    <div className="mt-2 text-[10px] font-medium text-center sm:text-xs" style={{ color: (t?.net_total ?? 0) >= 0 ? 'var(--success)' : 'var(--destructive)' }}>
+                      {(t?.net_total ?? 0) >= 0 ? '+' : ''}{(t?.net_total ?? 0).toLocaleString()}
                     </div>
                   )}
-                </button>
+                </Wrapper>
               );
             })}
           </div>

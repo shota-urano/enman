@@ -178,7 +178,7 @@ export default function TransactionForm() {
         <div className="mt-1 text-sm text-muted-foreground">日々の入出金を記録して、支出管理に役立てましょう</div>
       </CardHeader>
       <CardBody
-        className="overscroll-contain px-8 pb-8 pt-6 sm:px-10"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-8 pb-8 pt-6 sm:px-10"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 110px)' }}
       >
         {error && (

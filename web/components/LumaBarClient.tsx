@@ -6,6 +6,7 @@ import LumaBar from "@/components/LumaBar"
 type NavId = NonNullable<Parameters<typeof LumaBar>[0]["current"]>
 
 function resolveCurrent(pathname: string): NavId {
+  if (pathname.startsWith("/transactions/new")) return "new"
   if (pathname.startsWith("/settings")) return "settings"
   if (pathname.startsWith("/notifications") || pathname.startsWith("/alerts")) return "alerts"
   if (pathname.startsWith("/subscriptions")) return "subscriptions"

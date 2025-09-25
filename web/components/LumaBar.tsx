@@ -18,45 +18,46 @@ export default function LumaBar({ current = "calendar", onNavigate, className, b
       label: string
       prominent?: boolean
     },
-  ) => (
-    <button
-      aria-label={props.label}
-      aria-current={current === props.id ? "page" : undefined}
-      onClick={() => onNavigate?.(props.id)}
-      className={cn(
-        "relative flex flex-col items-center justify-center rounded-[28px] text-foreground transition-all duration-200",
-        props.prominent
-          ? "h-16 w-16 md:h-[72px] md:w-[72px]"
-          : "h-12 w-12 md:h-14 md:w-14",
-        current === props.id
-          ? "bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] text-white shadow-neumorphic-hover"
-          : "bg-gradient-to-br from-white via-[rgba(255,255,255,0.94)] to-[rgba(226,231,242,0.9)] text-foreground/85 shadow-neumorphic-soft hover:shadow-neumorphic-hover hover:-translate-y-[2px]",
-      )}
-    >
-      <span
+  ) => {
+    const isActive = current === props.id
+    return (
+      <button
+        aria-label={props.label}
+        aria-current={isActive ? "page" : undefined}
+        onClick={() => onNavigate?.(props.id)}
         className={cn(
-          "flex items-center justify-center",
-          current === props.id ? "text-white" : "text-muted-foreground",
+          "relative flex h-12 w-12 flex-col items-center justify-center rounded-[28px] text-foreground transition-all duration-200 md:h-14 md:w-14",
+          isActive
+            ? "bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] text-white shadow-neumorphic-hover"
+            : "bg-gradient-to-br from-white via-[rgba(255,255,255,0.94)] to-[rgba(226,231,242,0.9)] text-foreground/85 shadow-neumorphic-soft hover:shadow-neumorphic-hover hover:-translate-y-[2px]",
+          props.prominent && !isActive && "ring-1 ring-primary/25",
         )}
       >
-        {props.icon}
-      </span>
-      <span
-        className={cn(
-          // smaller label and prevent wrapping
-          "mt-0.5 text-[9px] md:text-[10px] leading-none whitespace-nowrap",
-          current === props.id ? "text-white/95" : "text-muted-foreground",
-        )}
-      >
-        {props.label}
-      </span>
-      {props.id === "alerts" && (badges?.alerts ?? 0) > 0 && (
-        <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] to-[rgba(255,120,148,0.9)] px-1 text-[10px] font-medium text-white shadow-neumorphic-soft">
-          {Math.min(badges!.alerts!, 99)}
+        <span
+          className={cn(
+            "flex items-center justify-center",
+            isActive ? "text-white" : "text-muted-foreground",
+          )}
+        >
+          {props.icon}
         </span>
-      )}
-    </button>
-  )
+        <span
+          className={cn(
+            // smaller label and prevent wrapping
+            "mt-0.5 text-[9px] md:text-[10px] leading-none whitespace-nowrap",
+            isActive ? "text-white/90" : "text-muted-foreground",
+          )}
+        >
+          {props.label}
+        </span>
+        {props.id === "alerts" && (badges?.alerts ?? 0) > 0 && (
+          <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] to-[rgba(255,120,148,0.9)] px-1 text-[10px] font-medium text-white shadow-neumorphic-soft">
+            {Math.min(badges!.alerts!, 99)}
+          </span>
+        )}
+      </button>
+    )
+  }
 
   return (
     <nav
@@ -73,7 +74,7 @@ export default function LumaBar({ current = "calendar", onNavigate, className, b
             <Item id="calendar" icon={<CalendarDays className="size-5" />} label="カレンダー" />
             <Item id="reports" icon={<BarChart3 className="size-5" />} label="レポート" />
           </div>
-          <Item id="new" icon={<Plus className="size-6" />} label="追加" prominent />
+          <Item id="new" icon={<Plus className="size-5" />} label="追加" prominent />
           <div className="flex basis-0 flex-1 items-center justify-evenly gap-3 md:gap-4 min-w-fit">
             <Item id="subscriptions" icon={<Repeat className="size-5" />} label="サブスク" />
             <Item id="alerts" icon={<Bell className="size-5" />} label="通知" />

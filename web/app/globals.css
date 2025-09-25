@@ -51,7 +51,7 @@
   --radius: 0.75rem;
 
   /* Base surfaces */
-  --background: #eef1f6; /* misty grey */
+  --background: #fdeff4; /* blush cloud */
   --foreground: #4e5058; /* comfy charcoal */
   --card: #f9fbff;       /* slightly raised plate */
   --card-foreground: #4e5058;
@@ -95,9 +95,9 @@
   --sidebar-ring: #ffb4c2;
 
   /* Background gradients for the neumorphic shell */
-  --surface-gradient-light: radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.7), transparent 55%);
-  --surface-gradient-dark: radial-gradient(circle at 80% 90%, rgba(211, 218, 233, 0.6), transparent 50%);
-  --app-background: linear-gradient(145deg, #f7f9fc, #e5e9f2);
+  --surface-gradient-light: none;
+  --surface-gradient-dark: none;
+  --app-background: #fdeff4;
 }
 
 .dark {
