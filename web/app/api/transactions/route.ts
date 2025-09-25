@@ -52,6 +52,8 @@ export async function GET(req: NextRequest) {
         date: t.occurred_on,
         amount: t.amount,
         type: t.kind,
+        category_id: t.category_id,
+        account_id: t.account_id,
         category_name: catMap.get(t.category_id),
         memo: t.memo ?? undefined,
         place: t.place ?? undefined,

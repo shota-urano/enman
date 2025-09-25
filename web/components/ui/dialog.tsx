@@ -1,6 +1,7 @@
 "use client"
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { acquireScrollLock } from "@/lib/dom/scroll-lock"
 
 type DialogContextValue = {
   open: boolean
@@ -35,6 +36,11 @@ export function Dialog({ open: openProp, onOpenChange, children }: DialogProps) 
     if (open) document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
   }, [open, setOpen])
+  React.useEffect(() => {
+    if (!open) return
+    const release = acquireScrollLock()
+    return release
+  }, [open])
   return (
     <DialogContext.Provider value={{ open, setOpen }}>{children}</DialogContext.Provider>
   )

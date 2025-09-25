@@ -1,12 +1,13 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-// Dialog imports not used on this page
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import AppHeader from "@/components/AppHeader";
+import TransactionEditDialog from "@/components/TransactionEditDialog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 type DailyTotalsItem = {
   date: string; // YYYY-MM-DD
@@ -33,6 +34,8 @@ type TxItem = {
   date: string;
   amount: number;
   type: "income" | "expense";
+  category_id?: string;
+  account_id?: string;
   category_name?: string;
   account_name?: string;
   place?: string;
@@ -102,6 +105,10 @@ export default function CalendarPage() {
   const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
   const [reactionsMap, setReactionsMap] = useState<Record<string, ReactionItem[]>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [editingTx, setEditingTx] = useState<TxItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<TxItem | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const monthKey = useMemo(() => formatMonthKey(currentMonth), [currentMonth]);
 
@@ -184,7 +191,7 @@ export default function CalendarPage() {
     return () => {
       aborted = true;
     };
-  }, [monthKey]);
+  }, [monthKey, refreshKey]);
 
   const totalsByDate = useMemo(() => {
     const map = new Map<string, DailyTotalsItem>();
@@ -218,7 +225,7 @@ export default function CalendarPage() {
     setCurrentMonth((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
   }
 
-  function openDetail(dateStr: string) {
+  const openDetail = useCallback((dateStr: string) => {
     setDetailDate(dateStr);
     setTxLoading(true);
     setTxError(null);
@@ -265,7 +272,14 @@ export default function CalendarPage() {
       .catch(() => setPendingList([]));
 
     Promise.allSettled([txPromise, pendingPromise]).finally(() => setTxLoading(false));
-  }
+  }, []);
+
+  const refreshAfterMutation = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+    if (detailDate) {
+      openDetail(detailDate);
+    }
+  }, [detailDate, openDetail]);
 
   async function addComment(txId: string) {
     const body = (commentInputs[txId] ?? "").trim();
@@ -297,6 +311,47 @@ export default function CalendarPage() {
     }
   }
 
+  const performDelete = useCallback(async (tx: TxItem) => {
+    try {
+      const res = await fetch(`/api/transactions/${tx.id}`, { method: 'DELETE' });
+      if (!res.ok && res.status !== 204) {
+        const payload: unknown = await res.json().catch(() => null);
+        let message = '取引の削除に失敗しました';
+        if (payload && typeof payload === 'object' && 'message' in payload) {
+          const m = (payload as { message?: unknown }).message;
+          if (typeof m === 'string') message = m;
+        }
+        throw new Error(message);
+      }
+      setTxList((list) => (list ?? []).filter((item) => item.id !== tx.id));
+      setCommentsMap((map) => {
+        const next = { ...map };
+        delete next[tx.id];
+        return next;
+      });
+      setReactionsMap((map) => {
+        const next = { ...map };
+        delete next[tx.id];
+        return next;
+      });
+      refreshAfterMutation();
+      setDeleteTarget(null);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : '取引の削除に失敗しました';
+      alert(msg);
+    }
+  }, [refreshAfterMutation]);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await performDelete(deleteTarget);
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [deleteTarget, performDelete]);
+
   function groupReactions(list: ReactionItem[]) {
     const map = new Map<string, number>();
     for (const r of list) map.set(r.emoji, (map.get(r.emoji) ?? 0) + 1);
@@ -324,6 +379,11 @@ export default function CalendarPage() {
   }
 
   const monthTitle = `${currentMonth.getFullYear()}年 ${currentMonth.getMonth() + 1}月`;
+  const deleteDescription = useMemo(() => {
+    if (!deleteTarget) return undefined;
+    const label = deleteTarget.type === 'expense' ? '支出' : '収入';
+    return `${deleteTarget.date} の${label} ¥${deleteTarget.amount.toLocaleString()}を削除します。この操作は取り消せません。`;
+  }, [deleteTarget]);
 
   return (
     <div>
@@ -495,20 +555,34 @@ export default function CalendarPage() {
               )}
               {(txList ?? []).map((tx) => (
                 <Card key={tx.id} className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium">{tx.category_name ?? "(未分類)"}</div>
-                    <div className="text-sm" style={{ color: tx.type === "expense" ? 'var(--destructive)' : 'var(--success)' }}>
-                      {tx.type === "expense" ? "-" : "+"}{tx.amount}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">{tx.category_name ?? "(未分類)"}</div>
+                      {(tx.account_name || tx.place) && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {tx.account_name && <span>支出元: {tx.account_name}</span>}
+                          {tx.account_name && tx.place && <span> ・ </span>}
+                          {tx.place && <span>場所: {tx.place}</span>}
+                        </div>
+                      )}
+                      {tx.memo && <div className="text-xs text-muted-foreground mt-1">{tx.memo}</div>}
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="text-sm" style={{ color: tx.type === "expense" ? 'var(--destructive)' : 'var(--success)' }}>
+                        {tx.type === "expense" ? "-" : "+"}{tx.amount}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="ghost" className="h-7 px-2 border"
+                          onClick={() => setEditingTx(tx)}>
+                          編集
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 px-2 border text-red-500"
+                          onClick={() => setDeleteTarget(tx)}>
+                          削除
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  {(tx.account_name || tx.place) && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {tx.account_name && <span>支出元: {tx.account_name}</span>}
-                      {tx.account_name && tx.place && <span> ・ </span>}
-                      {tx.place && <span>場所: {tx.place}</span>}
-                    </div>
-                  )}
-                  {tx.memo && <div className="text-xs text-muted-foreground mt-1">{tx.memo}</div>}
 
                   {/* Reactions */}
                   <div className="mt-2 flex items-center gap-2">
@@ -568,6 +642,45 @@ export default function CalendarPage() {
           </div>
         </SheetContent>
       </Sheet>
+      <TransactionEditDialog
+        open={!!editingTx}
+        transaction={
+          editingTx
+            ? {
+                id: editingTx.id,
+                date: editingTx.date,
+                type: editingTx.type,
+                amount: editingTx.amount,
+                category_id: editingTx.category_id ?? null,
+                account_id: editingTx.account_id ?? null,
+                place: editingTx.place ?? null,
+                memo: editingTx.memo ?? null,
+              }
+            : null
+        }
+        onOpenChange={(open) => {
+          if (!open) setEditingTx(null);
+        }}
+        onUpdated={refreshAfterMutation}
+        onDeleted={() => {
+          refreshAfterMutation();
+          setEditingTx(null);
+        }}
+      />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="取引を削除しますか？"
+        description={deleteDescription}
+        confirmText={deleteLoading ? '削除中…' : '削除する'}
+        cancelText="キャンセル"
+        destructive
+        loading={deleteLoading}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          if (deleteLoading) return;
+          setDeleteTarget(null);
+        }}
+      />
       </div>
     </div>
   );
