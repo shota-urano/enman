@@ -1,6 +1,6 @@
 "use client";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,35 @@ type Notification = {
   type: "subscription_reminder" | "comment" | "reaction";
   payload: Record<string, unknown>;
   read: boolean;
+  created_at: string;
+};
+
+type DetailTx = {
+  id: string;
+  date: string;
+  amount: number;
+  type: "income" | "expense";
+  category_id: string;
+  account_id: string;
+  category_name?: string;
+  account_name?: string;
+  place?: string;
+  memo?: string;
+};
+
+type CommentItem = {
+  id: string;
+  transaction_id: string;
+  body: string;
+  created_by: string;
+  created_at: string;
+};
+
+type ReactionItem = {
+  id: string;
+  transaction_id: string;
+  emoji: string;
+  user_id: string;
   created_at: string;
 };
 
@@ -66,7 +95,6 @@ export default function NotificationsPage() {
 
 function NotificationsContent() {
   const sp = useSearchParams();
-  const router = useRouter();
   const { show } = useToast();
   const [onlyUnread, setOnlyUnread] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -77,6 +105,14 @@ function NotificationsContent() {
   const [confirmChecking, setConfirmChecking] = useState(false);
   const [confirmAlready, setConfirmAlready] = useState(false);
   const [processed, setProcessed] = useState<Set<string>>(() => new Set());
+  const [detailTarget, setDetailTarget] = useState<{ nId: string; txId: string; commentId?: string } | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [detailTx, setDetailTx] = useState<DetailTx | null>(null);
+  const [detailComments, setDetailComments] = useState<CommentItem[]>([]);
+  const [detailReactions, setDetailReactions] = useState<ReactionItem[]>([]);
+  const [detailCommentValue, setDetailCommentValue] = useState("");
+  const [detailCommentBusy, setDetailCommentBusy] = useState(false);
 
   const selectedDate = sp?.get("date"); // YYYY-MM-DD (optional, from calendar)
 
@@ -120,6 +156,155 @@ function NotificationsContent() {
       setList((prev) => prev.map((x) => (x.id === id ? { ...x, read: true } : x)));
     } catch {
       // ignore for now; could surface toast later
+    }
+  };
+
+  const closeDetail = () => {
+    setDetailTarget(null);
+    setDetailLoading(false);
+    setDetailError(null);
+    setDetailTx(null);
+    setDetailComments([]);
+    setDetailReactions([]);
+    setDetailCommentValue("");
+    setDetailCommentBusy(false);
+  };
+
+  const refreshDetailReactions = async (txId: string) => {
+    try {
+      const res = await fetch(`/api/reactions?transaction_id=${txId}`);
+      if (res.ok) {
+        const json = (await res.json()) as ReactionItem[];
+        setDetailReactions(json);
+      }
+    } catch {
+      // ignore gracefully
+    }
+  };
+
+  const openDetail = async (notification: Notification, txId: string) => {
+    const commentId = typeof notification.payload?.["comment_id"] === "string"
+      ? String(notification.payload?.["comment_id"])
+      : undefined;
+    setDetailTarget({ nId: notification.id, txId, commentId });
+    setDetailLoading(true);
+    setDetailError(null);
+    setDetailTx(null);
+    setDetailComments([]);
+    setDetailReactions([]);
+    setDetailCommentValue("");
+    setDetailCommentBusy(false);
+    if (!notification.read) {
+      void markRead(notification.id);
+    }
+    try {
+      const baseRes = await fetch(`/api/transactions/${txId}`, { cache: "no-store" });
+      if (!baseRes.ok) throw new Error('取引情報の取得に失敗しました');
+      type BaseTx = {
+        id: string;
+        kind: "income" | "expense";
+        occurred_on: string;
+        amount: number;
+        category_id: string;
+        account_id: string;
+        place?: string | null;
+        memo?: string | null;
+      };
+      const base = (await baseRes.json()) as BaseTx;
+      let shaped: DetailTx = {
+        id: base.id,
+        date: base.occurred_on,
+        amount: base.amount,
+        type: base.kind,
+        category_id: base.category_id,
+        account_id: base.account_id,
+        place: base.place ?? undefined,
+        memo: base.memo ?? undefined,
+      };
+
+      const [detailRes, commentsRes, reactionsRes] = await Promise.all([
+        fetch(`/api/transactions?date=${encodeURIComponent(base.occurred_on)}`),
+        fetch(`/api/comments?transaction_id=${txId}`),
+        fetch(`/api/reactions?transaction_id=${txId}`),
+      ]);
+
+      if (detailRes.ok) {
+        try {
+          const list = (await detailRes.json()) as DetailTx[];
+          const match = Array.isArray(list) ? list.find((item) => item.id === base.id) : undefined;
+          if (match) {
+            shaped = { ...shaped, ...match };
+          }
+        } catch {
+          // ignore shaping errors and keep fallback data
+        }
+      }
+
+      if (commentsRes.ok) {
+        try {
+          const comments = (await commentsRes.json()) as CommentItem[];
+          setDetailComments(Array.isArray(comments) ? comments : []);
+        } catch {
+          setDetailComments([]);
+        }
+      } else {
+        setDetailComments([]);
+      }
+
+      if (reactionsRes.ok) {
+        try {
+          const reactions = (await reactionsRes.json()) as ReactionItem[];
+          setDetailReactions(Array.isArray(reactions) ? reactions : []);
+        } catch {
+          setDetailReactions([]);
+        }
+      } else {
+        setDetailReactions([]);
+      }
+
+      setDetailTx(shaped);
+    } catch (e: unknown) {
+      setDetailError(e instanceof Error ? e.message : '明細の取得に失敗しました');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const submitDetailComment = async () => {
+    if (!detailTarget) return;
+    const body = detailCommentValue.trim();
+    if (!body) return;
+    setDetailCommentBusy(true);
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transaction_id: detailTarget.txId, body }),
+      });
+      if (!res.ok) throw new Error('コメントの投稿に失敗しました');
+      const created = (await res.json()) as CommentItem;
+      setDetailComments((prev) => [...prev, created]);
+      setDetailCommentValue('');
+      show('コメントを投稿しました', 'success');
+    } catch (e: unknown) {
+      show(e instanceof Error ? e.message : 'コメントの投稿に失敗しました', 'error');
+    } finally {
+      setDetailCommentBusy(false);
+    }
+  };
+
+  const toggleDetailReaction = async (emoji: string) => {
+    if (!detailTarget) return;
+    try {
+      const res = await fetch('/api/reactions/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transaction_id: detailTarget.txId, emoji }),
+      });
+      if (!res.ok) throw new Error('リアクション更新に失敗しました');
+      await refreshDetailReactions(detailTarget.txId);
+    } catch (e: unknown) {
+      show(e instanceof Error ? e.message : 'リアクション更新に失敗しました', 'error');
     }
   };
 
@@ -213,11 +398,7 @@ function NotificationsContent() {
                         if (n.type === "comment" || n.type === "reaction") {
                           const txId = String(n.payload?.["transaction_id"] ?? "");
                           if (txId) {
-                            // Best-effort mark as read, then navigate
-                            if (!n.read) {
-                              try { await fetch(`/api/notifications/${n.id}/read`, { method: "POST" }); } catch {}
-                            }
-                            router.push(`/transactions/${txId}`);
+                            await openDetail(n, txId);
                             return;
                           }
                         }
@@ -274,7 +455,10 @@ function NotificationsContent() {
                             <Button
                               size="sm"
                               className="rounded-full bg-white/80 px-4 text-sm text-foreground shadow-neumorphic-soft hover:shadow-neumorphic-hover"
-                              onClick={() => markRead(n.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void markRead(n.id);
+                              }}
                             >
                               既読にする
                             </Button>
@@ -285,7 +469,10 @@ function NotificationsContent() {
                             <Button
                               size="sm"
                               className="rounded-full bg-white/80 px-4 text-sm text-foreground shadow-neumorphic-soft hover:shadow-neumorphic-hover"
-                              onClick={() => markRead(n.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void markRead(n.id);
+                              }}
                               disabled={confirmBusy}
                             >
                               既読
@@ -298,7 +485,8 @@ function NotificationsContent() {
                                   : "rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] px-4 text-sm text-white shadow-neumorphic-soft"
                               }
                               disabled={processed.has(n.id) || (confirm?.nId === n.id && confirmBusy)}
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 const subId = String(n.payload?.["subscription_id"] ?? "");
                                 const amt = Number(n.payload?.["expected_amount"] ?? 0);
                                 if (subId && !processed.has(n.id)) {
@@ -384,6 +572,21 @@ function NotificationsContent() {
             }
           }}
         />
+        <CommentDetailDialog
+          open={!!detailTarget}
+          onClose={closeDetail}
+          loading={detailLoading}
+          error={detailError}
+          tx={detailTx}
+          comments={detailComments}
+          reactions={detailReactions}
+          commentValue={detailCommentValue}
+          onCommentChange={setDetailCommentValue}
+          onSubmitComment={submitDetailComment}
+          commentBusy={detailCommentBusy}
+          onToggleReaction={toggleDetailReaction}
+          highlightCommentId={detailTarget?.commentId}
+        />
       </div>
     </main>
   );
@@ -429,6 +632,161 @@ function ConfirmDialog(props: {
               {props.already ? '登録済み' : (props.busy ? '確認中…' : '支払いを確認')}
             </Button>
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CommentDetailDialog(props: {
+  open: boolean;
+  onClose: () => void;
+  loading: boolean;
+  error: string | null;
+  tx: DetailTx | null;
+  reactions: ReactionItem[];
+  comments: CommentItem[];
+  highlightCommentId?: string;
+  commentValue: string;
+  onCommentChange: (v: string) => void;
+  onSubmitComment: () => void;
+  commentBusy?: boolean;
+  onToggleReaction: (emoji: string) => void;
+}) {
+  const { loading, error, tx, reactions, comments, commentValue, commentBusy } = props;
+  const reactionSummary = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of reactions ?? []) {
+      map.set(r.emoji, (map.get(r.emoji) ?? 0) + 1);
+    }
+    return Array.from(map.entries()).map(([emoji, count]) => ({ emoji, count }));
+  }, [reactions]);
+  const chipButtonClass =
+    "h-8 rounded-full bg-white/80 px-3 text-xs font-medium text-foreground shadow-neumorphic-soft transition-all hover:shadow-neumorphic-hover";
+  const canSubmit = commentValue.trim().length > 0 && !commentBusy && !loading;
+
+  return (
+    <Dialog open={props.open} onOpenChange={(o) => !o && props.onClose()}>
+      <DialogContent className="max-w-2xl rounded-2xl">
+        <DialogHeader className="text-base font-semibold">通知詳細</DialogHeader>
+        <div className="max-h-[70vh] overflow-y-auto space-y-3 pr-1">
+          {loading && (
+            <Card>
+              <CardBody className="space-y-2">
+                <div className="h-4 w-1/2 rounded-md bg-white/70 animate-pulse" />
+                <div className="h-4 w-2/3 rounded-md bg-white/70 animate-pulse" />
+                <div className="h-20 rounded-md bg-white/70 animate-pulse" />
+              </CardBody>
+            </Card>
+          )}
+          {!loading && error && (
+            <div className="rounded-[24px] border border-white/60 bg-gradient-to-br from-[rgba(255,228,232,1)] via-[rgba(255,210,217,0.94)] to-[rgba(242,139,148,0.9)] px-4 py-3 text-sm text-foreground shadow-neumorphic-soft">
+              {error}
+            </div>
+          )}
+          {!loading && !error && tx && (
+            <Card className="p-4 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">{tx.category_name ?? "(未分類)"}</div>
+                  <div className="text-xs text-muted-foreground mt-1">日付: {tx.date}</div>
+                  {(tx.account_name || tx.place) && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {tx.account_name && <span>支出元: {tx.account_name}</span>}
+                      {tx.account_name && tx.place && <span> ・ </span>}
+                      {tx.place && <span>場所: {tx.place}</span>}
+                    </div>
+                  )}
+                  {tx.memo && (
+                    <div className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{tx.memo}</div>
+                  )}
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="text-sm" style={{ color: tx.type === "expense" ? 'var(--destructive)' : 'var(--success)' }}>
+                    {tx.type === "expense" ? "-" : "+"}{tx.amount.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-2 flex items-center gap-2">
+                <div className="text-xs text-muted-foreground">リアクション:</div>
+                {reactionSummary.length > 0 ? (
+                  reactionSummary.map((r) => (
+                    <span key={r.emoji} className="text-sm">{r.emoji} {r.count}</span>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted-foreground">なし</span>
+                )}
+                <div className="ml-auto flex gap-1">
+                  {['👍', '❤️', '🎉'].map((emoji) => (
+                    <Button
+                      key={emoji}
+                      size="sm"
+                      variant="ghost"
+                      className={chipButtonClass}
+                      disabled={loading}
+                      onClick={() => props.onToggleReaction(emoji)}
+                    >
+                      {emoji}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-3">
+                <div className="text-xs font-medium mb-1">コメント</div>
+                <div className="space-y-1 max-h-48 overflow-auto">
+                  {comments.map((c) => {
+                    const highlight = props.highlightCommentId === c.id;
+                    return (
+                      <div
+                        key={c.id}
+                        className={cn(
+                          "text-xs flex items-start gap-2 rounded-md px-2 py-1 bg-white/80",
+                          highlight ? "ring-1 ring-[rgba(255,120,148,0.45)]" : ""
+                        )}
+                      >
+                        <div className="flex-1">
+                          <div className="text-muted-foreground">{new Date(c.created_at).toLocaleString()}</div>
+                          <div className="whitespace-pre-wrap">{c.body}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {comments.length === 0 && (
+                    <div className="text-xs text-muted-foreground">コメントはありません</div>
+                  )}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <Input
+                    placeholder="コメントを入力..."
+                    value={commentValue}
+                    onChange={(e) => props.onCommentChange(e.target.value)}
+                    disabled={commentBusy || loading}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (canSubmit) props.onSubmitComment();
+                      }
+                    }}
+                  />
+                  <Button
+                    size="sm"
+                    className="h-10 rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] via-[rgba(255,143,162,0.95)] to-[rgba(255,120,148,0.9)] px-4 text-white shadow-neumorphic-soft"
+                    disabled={!canSubmit}
+                    onClick={() => props.onSubmitComment()}
+                  >
+                    投稿
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+          {!loading && !error && !tx && (
+            <div className="rounded-[24px] border border-white/60 bg-white/80 px-4 py-3 text-sm text-muted-foreground shadow-neumorphic-soft">
+              取引の詳細を取得できませんでした。
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
