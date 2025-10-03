@@ -83,7 +83,7 @@ export function SheetContent({ className, children }: { className?: string; chil
   if (!isVisible) return null
   
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-[60]">
       <div 
         className={cn(
           "absolute inset-0 bg-[#eef1f6]/70 backdrop-blur-sm transition-opacity duration-500",

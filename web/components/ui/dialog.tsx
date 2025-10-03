@@ -70,12 +70,12 @@ export function DialogContent({ className, children }: { className?: string; chi
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50"
+      className="fixed inset-0 z-[60]"
     >
       <div className="absolute inset-0 bg-[#eef1f6]/70 backdrop-blur-sm" onClick={() => setOpen(false)} />
       <div
         className={cn(
-          "relative mx-auto mt-24 w-[min(92vw,440px)] rounded-[32px] border border-white/50 bg-white/80 text-foreground shadow-neumorphic bg-surface-neumorphic",
+          "relative mx-auto mt-24 w-[min(92vw,440px)] max-h-[calc(100dvh-140px)] overflow-y-auto rounded-[32px] border border-white/50 bg-white/80 text-foreground shadow-neumorphic bg-surface-neumorphic",
           className,
         )}
       >
