@@ -532,11 +532,11 @@ export default function CalendarPage() {
       )}
 
       <Sheet open={!!detailDate} onOpenChange={(o) => !o && setDetailDate(null)}>
-        <SheetContent className="h-[85vh] sm:h-[70vh] overflow-hidden px-0">
+        <SheetContent className="flex h-[85vh] flex-col overflow-hidden px-0 sm:h-[70vh]">
           <SheetHeader className="text-base font-semibold text-foreground">
             {detailDate} の明細
           </SheetHeader>
-          <div className="flex-1 overflow-auto px-5 pb-6">
+          <div className="flex-1 min-h-0 overflow-auto px-5 pb-6">
           {txLoading && (
             <div className="rounded-[24px] border border-white/50 bg-white/75 px-4 py-3 text-sm text-muted-foreground shadow-neumorphic-soft">
               読み込み中...
