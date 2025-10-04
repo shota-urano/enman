@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { createSupabaseBrowser } from "@/lib/supabaseBrowser"
 import { useToast } from "@/components/ui/toast"
 import { Input } from "@/components/ui/input"
@@ -14,7 +14,11 @@ export default function AuthPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { show } = useToast()
+
+  const redirectParam = searchParams?.get("redirect") ?? null
+  const safeRedirect = redirectParam && redirectParam.startsWith("/") ? redirectParam : null
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -48,7 +52,8 @@ export default function AuthPage() {
         }, 300)
       }
       // Go to main calendar view; onboarding modal will handle first-login setup
-      router.replace("/calendar")
+      const destination = safeRedirect && safeRedirect !== "/auth" ? safeRedirect : "/calendar"
+      router.replace(destination)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "認証エラーが発生しました"
       show(message, "error")

@@ -1,6 +1,7 @@
 "use client";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import RequireAuth from "@/components/auth/RequireAuth";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,6 +82,14 @@ function kindMeta(n: Notification) {
 }
 
 export default function NotificationsPage() {
+  return (
+    <RequireAuth>
+      <NotificationsScreen />
+    </RequireAuth>
+  );
+}
+
+function NotificationsScreen() {
   return (
     <Suspense
       fallback={

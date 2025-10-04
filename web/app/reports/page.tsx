@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import RequireAuth from "@/components/auth/RequireAuth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import AppHeader from "@/components/AppHeader";
@@ -109,6 +110,14 @@ function buildPieGradient(totals: CatTotal[], colors: string[]): string {
 }
 
 export default function ReportsPage() {
+  return (
+    <RequireAuth>
+      <ReportsScreen />
+    </RequireAuth>
+  );
+}
+
+function ReportsScreen() {
   const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
   const monthKey = useMemo(() => formatMonthKey(currentMonth), [currentMonth]);
   const { loading, error, categories, txs } = useMonthlyData(monthKey);

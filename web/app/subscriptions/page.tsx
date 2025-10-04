@@ -1,12 +1,13 @@
-"use client"
+"use client";
 
-import { Suspense, useEffect, useMemo, useState, useTransition } from "react"
-import { useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog"
-import AppHeader from "@/components/AppHeader"
+import { Suspense, useEffect, useMemo, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
+import RequireAuth from "@/components/auth/RequireAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import AppHeader from "@/components/AppHeader";
 
 type Category = { id: string; name: string }
 type Account = { id: string; name: string }
@@ -22,6 +23,14 @@ type Subscription = {
 }
 
 export default function SubscriptionsPage() {
+  return (
+    <RequireAuth>
+      <SubscriptionsScreen />
+    </RequireAuth>
+  );
+}
+
+function SubscriptionsScreen() {
   return (
     <Suspense
       fallback={

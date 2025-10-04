@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import RequireAuth from "@/components/auth/RequireAuth";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,6 +94,14 @@ function getCalendarMatrix(base: Date) {
 }
 
 export default function CalendarPage() {
+  return (
+    <RequireAuth>
+      <CalendarScreen />
+    </RequireAuth>
+  );
+}
+
+function CalendarScreen() {
   const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
   const [data, setData] = useState<DailyTotalsItem[] | null>(null);

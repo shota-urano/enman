@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import RequireAuth from "@/components/auth/RequireAuth";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,14 @@ type Tx = {
 };
 
 export default function TransactionDetailPage() {
+  return (
+    <RequireAuth>
+      <TransactionDetailScreen />
+    </RequireAuth>
+  );
+}
+
+function TransactionDetailScreen() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [tx, setTx] = useState<Tx | null>(null);

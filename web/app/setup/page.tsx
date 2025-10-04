@@ -1,9 +1,10 @@
-"use client"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { useToast } from "@/components/ui/toast"
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import RequireAuth from "@/components/auth/RequireAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 
 type Json = Record<string, unknown>
 
@@ -22,6 +23,14 @@ async function postJson<T = unknown>(path: string, body: Json): Promise<T> {
 }
 
 export default function SetupPage() {
+  return (
+    <RequireAuth>
+      <SetupScreen />
+    </RequireAuth>
+  );
+}
+
+function SetupScreen() {
   const [name, setName] = useState("")
   const [token, setToken] = useState("")
   const [loadingCreate, setLoadingCreate] = useState(false)
