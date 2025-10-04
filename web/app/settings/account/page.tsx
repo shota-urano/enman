@@ -103,7 +103,6 @@ function AccountSettingsContent() {
   const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     const file = event.target.files?.[0] ?? null;
     if (!file) {
-      setSelectedFile(null);
       setPreviewUrl(null);
       return;
     }
