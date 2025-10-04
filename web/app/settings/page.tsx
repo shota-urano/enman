@@ -258,6 +258,18 @@ function SettingsContent() {
           </Button>
         </Card>
 
+        <Card id="subscriptions" className="space-y-3 p-4">
+          <div>
+            <h2 className="text-lg font-medium">サブスク</h2>
+            <p className="text-sm text-muted-foreground">定期支出の確認や管理はここから行えます。</p>
+          </div>
+          <div>
+            <Link href="/subscriptions">
+              <Button>サブスクを管理</Button>
+            </Link>
+          </div>
+        </Card>
+
         <Card className="space-y-3 p-4">
           <h2 className="text-lg font-medium">締め日</h2>
           <div className="flex items-center gap-3">

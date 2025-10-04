@@ -9,7 +9,7 @@ function resolveCurrent(pathname: string): NavId {
   if (pathname.startsWith("/transactions/new")) return "new"
   if (pathname.startsWith("/settings")) return "settings"
   if (pathname.startsWith("/notifications") || pathname.startsWith("/alerts")) return "alerts"
-  if (pathname.startsWith("/subscriptions")) return "subscriptions"
+  if (pathname.startsWith("/subscriptions")) return "settings"
   if (pathname.startsWith("/reports")) return "reports"
   if (pathname === "/" || pathname.startsWith("/calendar")) return "calendar"
   return "calendar"
@@ -58,9 +58,6 @@ export default function LumaBarClient() {
             break
           case "reports":
             router.push("/reports")
-            break
-          case "subscriptions":
-            router.push("/subscriptions")
             break
           case "new":
             router.push("/transactions/new")

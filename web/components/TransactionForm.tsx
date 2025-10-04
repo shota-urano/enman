@@ -1,5 +1,6 @@
 "use client"
 import React from 'react'
+import { useToast } from '@/components/ui/toast'
 import { Card, CardBody, CardHeader } from './ui/card'
 import { Input } from './ui/input'
 import { Select } from './ui/select'
@@ -53,8 +54,8 @@ export default function TransactionForm() {
   })
   const [saving, setSaving] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
-  const [error, setError] = React.useState<string | null>(null)
-  const [okMsg, setOkMsg] = React.useState<string | null>(null)
+  const bodyRef = React.useRef<HTMLDivElement>(null)
+  const { show } = useToast()
 
   const [categories, setCategories] = React.useState<Category[]>([])
   const [accounts, setAccounts] = React.useState<Account[]>([])
@@ -115,11 +116,9 @@ export default function TransactionForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
-    setOkMsg(null)
     const err = validate()
     if (err) {
-      setError(err)
+      show(err, 'error')
       return
     }
     setSubmitting(true)
@@ -147,7 +146,11 @@ export default function TransactionForm() {
         throw new Error(msg || '登録に失敗しました')
       }
       // Success
-      setOkMsg('取引を登録しました')
+      show('取引を登録しました', 'success')
+      bodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
       const next = { ...initialDraft, kind: draft.kind }
       setDraft(next)
       try {
@@ -155,7 +158,7 @@ export default function TransactionForm() {
       } catch {}
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : '登録に失敗しました'
-      setError(msg)
+      show(msg, 'error')
     } finally {
       setSubmitting(false)
     }
@@ -173,24 +176,15 @@ export default function TransactionForm() {
         maxHeight: 'calc(100dvh - (env(safe-area-inset-bottom) + 150px))',
       }}
     >
-      <CardHeader className="rounded-t-[36px] border-0 bg-white/60 px-8 py-6">
-        <div className="text-xl font-semibold text-foreground">取引登録</div>
+      <CardHeader className="flex-col items-start gap-1 rounded-t-[36px] border-0 bg-white/60 px-8 py-6">
+        <div className="text-xl font-semibold text-foreground whitespace-nowrap">取引登録</div>
         <div className="mt-1 text-sm text-muted-foreground">日々の入出金を記録して、支出管理に役立てましょう</div>
       </CardHeader>
       <CardBody
+        ref={bodyRef}
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-8 pb-8 pt-6 sm:px-10"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 110px)' }}
       >
-        {error && (
-          <div className="mb-3 rounded-[24px] border border-white/50 bg-gradient-to-br from-[rgba(255,228,232,1)] via-[rgba(255,210,217,0.94)] to-[rgba(242,139,148,0.9)] px-4 py-2.5 text-sm text-foreground shadow-neumorphic-soft" role="alert">
-            {error}
-          </div>
-        )}
-        {okMsg && (
-          <div className="mb-3 rounded-[24px] border border-white/50 bg-gradient-to-br from-white via-[rgba(245,255,251,0.94)] to-[rgba(202,236,217,0.9)] px-4 py-2.5 text-sm text-foreground shadow-neumorphic-soft" role="status">
-            {okMsg}
-          </div>
-        )}
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
             <label className="text-sm font-medium text-muted-foreground">種別</label>
@@ -304,4 +298,3 @@ export default function TransactionForm() {
     </Card>
   )
 }
-

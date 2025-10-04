@@ -1,10 +1,10 @@
 "use client"
 import * as React from "react"
-import { Bell, Settings, CalendarDays, BarChart3, Repeat, Plus } from "lucide-react"
+import { Bell, Settings, CalendarDays, BarChart3, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export type LumaBarProps = {
-  current?: "calendar" | "reports" | "subscriptions" | "new" | "alerts" | "settings"
+  current?: "calendar" | "reports" | "new" | "alerts" | "settings"
   onNavigate?: (to: NonNullable<LumaBarProps["current"]>) => void
   className?: string
   badges?: Partial<Record<NonNullable<LumaBarProps["current"]>, number>>
@@ -76,7 +76,6 @@ export default function LumaBar({ current = "calendar", onNavigate, className, b
           </div>
           <Item id="new" icon={<Plus className="size-5" />} label="追加" prominent />
           <div className="flex basis-0 flex-1 items-center justify-evenly gap-3 md:gap-4 min-w-fit">
-            <Item id="subscriptions" icon={<Repeat className="size-5" />} label="サブスク" />
             <Item id="alerts" icon={<Bell className="size-5" />} label="通知" />
             <Item id="settings" icon={<Settings className="size-5" />} label="設定" />
           </div>
