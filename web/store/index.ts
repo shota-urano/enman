@@ -11,6 +11,7 @@ export type Transaction = {
   account_id: string
   place?: string | null
   memo?: string | null
+  created_by: string
 }
 
 export type DailyTotal = {

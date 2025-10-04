@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { assertHouseholdMember, getSession } from '@/server/utils/auth'
 import { normalizeError, toErrorBody, badRequest } from '@/server/utils/errors'
 import { transactionsRepository } from '@/server/repositories/transactionsRepository'
+import { profilesRepository } from '@/server/repositories/profilesRepository'
 import { txUpdateSchema } from '@/server/schemas/transaction'
 
 export async function PATCH(
@@ -44,7 +45,18 @@ export async function GET(
 
     const { id } = await params
     const tx = await transactionsRepository.getById(session.householdId!, id)
-    return NextResponse.json(tx, { status: 200 })
+    const profile = await profilesRepository.ensure(tx.created_by)
+    return NextResponse.json(
+      {
+        ...tx,
+        creator: {
+          user_id: profile.user_id,
+          display_name: profile.display_name ?? profilesRepository.DEFAULT_NAME,
+          avatar_url: profile.avatar_url ?? null,
+        },
+      },
+      { status: 200 },
+    )
   } catch (e: unknown) {
     const err = normalizeError(e)
     return NextResponse.json(toErrorBody(err), { status: err.status })

@@ -1,4 +1,5 @@
 import { createSupabaseAdmin } from '@/server/clients/supabase'
+import { profilesRepository } from '@/server/repositories/profilesRepository'
 
 export type Comment = {
   id: string
@@ -8,11 +9,19 @@ export type Comment = {
   created_at: string
 }
 
+export type CommentWithAuthor = Comment & {
+  author: {
+    user_id: string
+    display_name: string
+    avatar_url: string | null
+  }
+}
+
 export const commentsRepository = {
   async listByTransaction(
     householdId: string,
     transactionId: string,
-  ): Promise<Comment[]> {
+  ): Promise<CommentWithAuthor[]> {
     const supabase = createSupabaseAdmin()
     const { data, error } = await supabase
       .from('comments')
@@ -22,13 +31,25 @@ export const commentsRepository = {
       .order('created_at', { ascending: true })
 
     if (error) throw error
-    return (data ?? []) as Comment[]
+    const rows = (data ?? []) as Comment[]
+    const profileMap = await profilesRepository.list(rows.map((row) => row.created_by))
+    return rows.map((row) => {
+      const profile = profileMap[row.created_by]
+      return {
+        ...row,
+        author: {
+          user_id: row.created_by,
+          display_name: profile?.display_name ?? profilesRepository.DEFAULT_NAME,
+          avatar_url: profile?.avatar_url ?? null,
+        },
+      }
+    })
   },
   async create(
     householdId: string,
     userId: string,
     input: import('@/server/schemas/comment').CommentCreateInput,
-  ): Promise<Comment> {
+  ): Promise<CommentWithAuthor> {
     const supabase = createSupabaseAdmin()
     const { data, error } = await supabase
       .from('comments')
@@ -44,7 +65,16 @@ export const commentsRepository = {
 
     if (error) throw error
     if (!data) throw new Error('コメントの作成に失敗しました')
-    return data as Comment
+    const profile = await profilesRepository.ensure(userId)
+    const base = data as Comment
+    return {
+      ...base,
+      author: {
+        user_id: userId,
+        display_name: profile.display_name ?? profilesRepository.DEFAULT_NAME,
+        avatar_url: profile.avatar_url ?? null,
+      },
+    }
   },
   async remove(
     householdId: string,

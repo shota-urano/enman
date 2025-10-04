@@ -1,15 +1,28 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { createSupabaseBrowser } from "@/lib/supabaseBrowser"
 import { useToast } from "@/components/ui/toast"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import BubbleDecoration from "@/components/auth/BubbleDecoration"
+import UserAvatar from "@/components/UserAvatar"
+import { Camera } from "lucide-react"
+import {
+  DEFAULT_PROFILE_NAME,
+  PENDING_PROFILE_STORAGE_KEY,
+} from "@/lib/profile"
+
+const MAX_FILE_SIZE_MB = 5
+const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024
 
 export default function SignupPage() {
+  const [displayName, setDisplayName] = useState("")
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -17,9 +30,26 @@ export default function SignupPage() {
   const router = useRouter()
   const { show } = useToast()
 
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+    }
+  }, [avatarPreview])
+
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click()
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
+
+    const trimmedName = displayName.trim()
+    if (!trimmedName) {
+      show("表示名を入力してください", "error")
+      setLoading(false)
+      return
+    }
 
     if (password !== confirmPassword) {
       show("パスワードが一致しません。もう一度同じ内容を入力してください", "error")
@@ -41,6 +71,38 @@ export default function SignupPage() {
         }
         document.cookie = `sb-access-token=${encodeURIComponent(token)}; ${attrs}`
       }
+
+      if (typeof window !== "undefined") {
+        const payload = {
+          display_name: trimmedName,
+        }
+        window.localStorage.setItem(PENDING_PROFILE_STORAGE_KEY, JSON.stringify(payload))
+      }
+
+      if (token) {
+        try {
+          await fetch("/api/profile", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ display_name: trimmedName }),
+          })
+        } catch {
+          // セッション未確立の場合は後で適用する
+        }
+        if (avatarFile) {
+          try {
+            const form = new FormData()
+            form.append("file", avatarFile)
+            await fetch("/api/profile/avatar", {
+              method: "POST",
+              body: form,
+            })
+          } catch (err) {
+            console.error("初回アイコン設定に失敗しました", err)
+          }
+        }
+      }
+
       show(
         "We've sent you a confirmation email. Please check your inbox and complete the verification process.",
         "success",
@@ -90,6 +152,76 @@ export default function SignupPage() {
           <div className="mx-auto w-full max-w-md">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
+                <label className="mb-1 block text-sm">表示名</label>
+                <Input
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="家族に表示される名前"
+                  maxLength={64}
+                  required
+                  disabled={loading}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm">アイコン (任意)</label>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={triggerFileSelect}
+                      className="relative inline-flex items-center justify-center transition hover:opacity-90"
+                      aria-label="アイコンを選択"
+                      disabled={loading}
+                    >
+                      <UserAvatar
+                        name={displayName || DEFAULT_PROFILE_NAME}
+                        imageUrl={avatarPreview}
+                        size="md"
+                        className="pointer-events-none"
+                      />
+                      <span
+                        className="absolute bottom-0 right-0 flex h-7 w-7 translate-x-1/4 translate-y-1/4 items-center justify-center rounded-full bg-black text-white shadow ring-2 ring-white/90"
+                        aria-hidden
+                      >
+                        <Camera className="h-3.5 w-3.5" />
+                      </span>
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] ?? null
+                        if (!file) {
+                          setAvatarFile(null)
+                          if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+                          setAvatarPreview(null)
+                          return
+                        }
+                        if (file.size > MAX_FILE_SIZE) {
+                          show(`画像サイズは ${MAX_FILE_SIZE_MB}MB 以下にしてください`, "error")
+                          event.target.value = ""
+                          return
+                        }
+                        if (!file.type.startsWith("image/")) {
+                          show("画像ファイルを選択してください", "error")
+                          event.target.value = ""
+                          return
+                        }
+                        if (avatarPreview) URL.revokeObjectURL(avatarPreview)
+                        const url = URL.createObjectURL(file)
+                        setAvatarFile(file)
+                        setAvatarPreview(url)
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    登録後もアカウント設定ページからいつでも変更できます。
+                  </p>
+                </div>
+              </div>
+              <div>
                 <label className="mb-1 block text-sm">メールアドレス</label>
                 <Input
                   type="email"
@@ -97,6 +229,7 @@ export default function SignupPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
                   required
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -107,6 +240,7 @@ export default function SignupPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"
                   required
+                  disabled={loading}
                 />
               </div>
               <div>
@@ -117,6 +251,7 @@ export default function SignupPage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   autoComplete="new-password"
                   required
+                  disabled={loading}
                 />
               </div>
               <Button

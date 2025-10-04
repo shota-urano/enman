@@ -90,6 +90,7 @@ describe('PATCH /api/transactions/:id', () => {
       account_id: 'a-1',
       place: 'Store',
       memo: 'updated memo',
+      created_by: 'u-1',
     }
     transactionsRepository.update.mockResolvedValue(tx)
 

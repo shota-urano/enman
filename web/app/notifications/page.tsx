@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { REACTION_PRESETS, REACTION_SUGGESTIONS, MAX_CUSTOM_REACTION_LENGTH, countEmojiUnits } from "@/lib/reactions";
+import UserAvatar from "@/components/UserAvatar";
+import { DEFAULT_PROFILE_NAME } from "@/lib/profile";
 
 type Notification = {
   id: string;
@@ -31,6 +33,12 @@ type DetailTx = {
   account_name?: string;
   place?: string;
   memo?: string;
+  created_by?: string;
+  creator?: {
+    user_id: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
 };
 
 type CommentItem = {
@@ -39,6 +47,11 @@ type CommentItem = {
   body: string;
   created_by: string;
   created_at: string;
+  author: {
+    user_id: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
 };
 
 type ReactionItem = {
@@ -217,6 +230,12 @@ function NotificationsContent() {
         amount: number;
         category_id: string;
         account_id: string;
+        created_by: string;
+        creator?: {
+          user_id: string;
+          display_name: string;
+          avatar_url: string | null;
+        };
         place?: string | null;
         memo?: string | null;
       };
@@ -228,6 +247,8 @@ function NotificationsContent() {
         type: base.kind,
         category_id: base.category_id,
         account_id: base.account_id,
+        created_by: base.created_by,
+        creator: base.creator,
         place: base.place ?? undefined,
         memo: base.memo ?? undefined,
       };
@@ -270,6 +291,17 @@ function NotificationsContent() {
         }
       } else {
         setDetailReactions([]);
+      }
+
+      if (!shaped.creator) {
+        shaped = {
+          ...shaped,
+          creator: {
+            user_id: shaped.created_by ?? base.created_by,
+            display_name: DEFAULT_PROFILE_NAME,
+            avatar_url: null,
+          },
+        };
       }
 
       setDetailTx(shaped);
@@ -699,6 +731,11 @@ function CommentDetailDialog(props: {
     [presetSet],
   );
 
+  const creatorName = tx?.creator?.display_name?.trim()
+    ? tx.creator.display_name.trim()
+    : DEFAULT_PROFILE_NAME;
+  const creatorAvatar = tx?.creator?.avatar_url ?? null;
+
   const closeCustomEmoji = () => {
     setCustomEmojiActive(false);
     setCustomEmojiValue('');
@@ -753,6 +790,14 @@ function CommentDetailDialog(props: {
           )}
           {!loading && !error && tx && (
             <Card className="p-4 space-y-4">
+              <div className="flex items-center gap-3">
+                <UserAvatar name={creatorName} imageUrl={creatorAvatar} size="sm" />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{creatorName}</div>
+                  <div className="text-[10px] text-muted-foreground">登録者</div>
+                </div>
+              </div>
+
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{tx.category_name ?? "(未分類)"}</div>
@@ -890,20 +935,26 @@ function CommentDetailDialog(props: {
 
               <div className="mt-3">
                 <div className="text-xs font-medium mb-1">コメント</div>
-                <div className="space-y-1 max-h-48 overflow-auto">
+                <div className="space-y-1.5 max-h-48 overflow-auto">
                   {comments.map((c) => {
                     const highlight = props.highlightCommentId === c.id;
+                    const authorName = c.author?.display_name?.trim() ? c.author.display_name.trim() : DEFAULT_PROFILE_NAME;
+                    const authorAvatar = c.author?.avatar_url ?? null;
                     return (
                       <div
                         key={c.id}
                         className={cn(
-                          "text-xs flex items-start gap-2 rounded-md px-2 py-1 bg-white/80",
+                          "flex items-start gap-2 rounded-md bg-white/80 px-2 py-1",
                           highlight ? "ring-1 ring-[rgba(255,120,148,0.45)]" : ""
                         )}
                       >
-                        <div className="flex-1">
-                          <div className="text-muted-foreground">{new Date(c.created_at).toLocaleString()}</div>
-                          <div className="whitespace-pre-wrap">{c.body}</div>
+                        <UserAvatar name={authorName} imageUrl={authorAvatar} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium truncate">{authorName}</span>
+                            <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
+                          </div>
+                          <div className="mt-1 text-xs whitespace-pre-wrap">{c.body}</div>
                         </div>
                       </div>
                     );

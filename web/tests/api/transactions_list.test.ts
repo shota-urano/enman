@@ -82,6 +82,7 @@ describe('GET /api/transactions', () => {
         account_id: 'a-1',
         place: 'スーパー',
         memo: '夕飯',
+        created_by: 'u-1',
       },
     ]
     transactionsRepository.listByMonth.mockResolvedValue(list)
@@ -111,4 +112,3 @@ describe('GET /api/transactions', () => {
     expect(transactionsRepository.listByDate).toHaveBeenCalledWith('h-1', '2025-09-02', undefined)
   })
 })
-

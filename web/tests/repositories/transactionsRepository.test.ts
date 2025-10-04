@@ -47,6 +47,7 @@ describe('transactionsRepository', () => {
         account_id: 'a1',
         place: null,
         memo: null,
+        created_by: 'user-1',
       },
     ]
 
@@ -91,6 +92,7 @@ describe('transactionsRepository', () => {
       account_id: 'acc',
       place: null,
       memo: 'hello',
+      created_by: 'user-1',
     }
 
     const chain: InsertChain<Transaction> = {

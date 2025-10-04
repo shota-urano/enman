@@ -5,6 +5,7 @@ import RequireAuth from "@/components/auth/RequireAuth";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import UserAvatar from "@/components/UserAvatar";
 
 type Tx = {
   id: string;
@@ -15,6 +16,12 @@ type Tx = {
   account_id: string;
   place?: string | null;
   memo?: string | null;
+  created_by: string;
+  creator?: {
+    user_id: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
 };
 
 export default function TransactionDetailPage() {
@@ -54,6 +61,7 @@ function TransactionDetailScreen() {
   const title = tx
     ? `${tx.kind === "expense" ? "支出" : "収入"} ¥${tx.amount.toLocaleString()}`
     : "明細";
+  const creatorName = tx?.creator?.display_name?.trim() ? tx.creator.display_name : "ななし";
 
   return (
     <main className="page-container pb-28">
@@ -86,6 +94,14 @@ function TransactionDetailScreen() {
         {!loading && !error && tx && (
           <Card>
             <CardBody className="space-y-3">
+              <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-3 py-3">
+                <UserAvatar name={creatorName} imageUrl={tx.creator?.avatar_url ?? null} size="md" />
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">{creatorName}</div>
+                  <div className="text-xs text-muted-foreground">登録者</div>
+                </div>
+              </div>
+
               <div className="text-sm text-muted-foreground">日付</div>
               <div className="text-base">{tx.occurred_on}</div>
 

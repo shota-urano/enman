@@ -1,4 +1,5 @@
 import { createSupabaseAdmin } from '@/server/clients/supabase'
+import { profilesRepository } from '@/server/repositories/profilesRepository'
 
 export type HouseholdMember = {
   user_id: string
@@ -6,6 +7,10 @@ export type HouseholdMember = {
   approved: boolean
   joined_at: string | null
   created_at: string
+  profile: {
+    display_name: string
+    avatar_url: string | null
+  }
 }
 
 export type Household = {
@@ -40,6 +45,8 @@ export const householdsRepository = {
       })
     if (mErr) throw mErr
 
+    await profilesRepository.ensure(ownerUserId)
+
     return hh as Household
   },
 
@@ -64,6 +71,8 @@ export const householdsRepository = {
         joined_at: null,
       })
     if (error) throw error
+
+    await profilesRepository.ensure(userId)
   },
   async listMembers(householdId: string): Promise<HouseholdMember[]> {
     const supabase = createSupabaseAdmin()
@@ -74,7 +83,29 @@ export const householdsRepository = {
       .order('role', { ascending: true })
       .order('created_at', { ascending: true })
     if (error) throw error
-    return (data ?? []) as HouseholdMember[]
+
+    const rows = (data ?? []) as Array<
+      Omit<HouseholdMember, 'profile'>
+    >
+    const userIds = rows.map((row) => row.user_id)
+    const profileMap = await profilesRepository.list(userIds)
+
+    const results: HouseholdMember[] = []
+    for (const row of rows) {
+      let profile = profileMap[row.user_id]
+      if (!profile) {
+        profile = await profilesRepository.ensure(row.user_id)
+      }
+      results.push({
+        ...row,
+        profile: {
+          display_name: profile.display_name ?? profilesRepository.DEFAULT_NAME,
+          avatar_url: profile.avatar_url ?? null,
+        },
+      })
+    }
+
+    return results
   },
   async setApproved(householdId: string, userId: string, approved: boolean): Promise<HouseholdMember> {
     const supabase = createSupabaseAdmin()
@@ -87,7 +118,14 @@ export const householdsRepository = {
       .single()
     if (error) throw error
     if (!data) throw new Error('承認状態の更新に失敗しました')
-    return data as HouseholdMember
+    const profile = await profilesRepository.ensure(userId)
+    return {
+      ...(data as Omit<HouseholdMember, 'profile'>),
+      profile: {
+        display_name: profile.display_name ?? profilesRepository.DEFAULT_NAME,
+        avatar_url: profile.avatar_url ?? null,
+      },
+    }
   },
   async isOwner(householdId: string, userId: string): Promise<boolean> {
     const supabase = createSupabaseAdmin()

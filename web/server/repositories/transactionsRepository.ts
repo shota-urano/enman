@@ -9,6 +9,7 @@ export type Transaction = {
   account_id: string
   place?: string | null
   memo?: string | null
+  created_by: string
 }
 
 export const transactionsRepository = {
@@ -19,7 +20,7 @@ export const transactionsRepository = {
     const supabase = createSupabaseAdmin()
     const { data, error } = await supabase
       .from('transactions')
-      .select('id, kind, occurred_on, amount, category_id, account_id, place, memo')
+      .select('id, kind, occurred_on, amount, category_id, account_id, place, memo, created_by')
       .eq('household_id', householdId)
       .eq('id', id)
       .single()
@@ -59,7 +60,7 @@ export const transactionsRepository = {
       .eq('household_id', householdId)
       .eq('id', id)
       .select(
-        'id, kind, occurred_on, amount, category_id, account_id, place, memo',
+        'id, kind, occurred_on, amount, category_id, account_id, place, memo, created_by',
       )
       .single()
 
@@ -88,7 +89,7 @@ export const transactionsRepository = {
         created_by: userId,
         updated_by: userId,
       })
-      .select('id, kind, occurred_on, amount, category_id, account_id, place, memo')
+      .select('id, kind, occurred_on, amount, category_id, account_id, place, memo, created_by')
       .single()
 
     if (error) throw error
@@ -113,7 +114,7 @@ export const transactionsRepository = {
     let query = supabase
       .from('transactions')
       .select(
-        'id, kind, occurred_on, amount, category_id, account_id, place, memo',
+        'id, kind, occurred_on, amount, category_id, account_id, place, memo, created_by',
       )
       .eq('household_id', householdId)
       .gte('occurred_on', firstDay)
@@ -138,7 +139,7 @@ export const transactionsRepository = {
     let query = supabase
       .from('transactions')
       .select(
-        'id, kind, occurred_on, amount, category_id, account_id, place, memo',
+        'id, kind, occurred_on, amount, category_id, account_id, place, memo, created_by',
       )
       .eq('household_id', householdId)
       .eq('occurred_on', date)

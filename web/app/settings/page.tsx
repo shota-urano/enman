@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import clsx from "clsx";
 import RequireAuth from "@/components/auth/RequireAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,6 +12,8 @@ import Select from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import AppHeader from "@/components/AppHeader";
 import { createSupabaseBrowser } from "@/lib/supabaseBrowser";
+import UserAvatar from "@/components/UserAvatar";
+import { DEFAULT_PROFILE_NAME } from "@/lib/profile";
 
 export default function SettingsPage() {
   return (
@@ -20,19 +23,23 @@ export default function SettingsPage() {
   );
 }
 
+type Member = {
+  user_id: string;
+  role: "owner" | "member";
+  approved: boolean;
+  joined_at: string | null;
+  created_at: string;
+  profile: {
+    display_name: string;
+    avatar_url: string | null;
+  };
+};
+
 function SettingsContent() {
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [loadingInvite, setLoadingInvite] = useState(false);
 
-  const [members, setMembers] = useState<
-    Array<{
-      user_id: string;
-      role: "owner" | "member";
-      approved: boolean;
-      joined_at: string | null;
-      created_at: string;
-    }>
-  >([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [memberError, setMemberError] = useState<string | null>(null);
 
@@ -45,6 +52,21 @@ function SettingsContent() {
   const router = useRouter();
   const { show } = useToast();
 
+  const normalizeMember = useCallback(
+    (raw: any): Member => ({
+      user_id: String(raw?.user_id ?? ""),
+      role: raw?.role === "owner" ? "owner" : "member",
+      approved: Boolean(raw?.approved),
+      joined_at: raw?.joined_at ?? null,
+      created_at: raw?.created_at ?? new Date().toISOString(),
+      profile: {
+        display_name: raw?.profile?.display_name?.trim() ? raw.profile.display_name.trim() : DEFAULT_PROFILE_NAME,
+        avatar_url: raw?.profile?.avatar_url ?? null,
+      },
+    }),
+    [],
+  );
+
   useEffect(() => {
     const loadMembers = async () => {
       setLoadingMembers(true);
@@ -53,7 +75,8 @@ function SettingsContent() {
         const res = await fetch("/api/households/members", { cache: "no-store" });
         if (!res.ok) throw new Error("メンバーの取得に失敗しました");
         const list = await res.json();
-        setMembers(Array.isArray(list) ? list : []);
+        const normalized: Member[] = Array.isArray(list) ? list.map(normalizeMember) : [];
+        setMembers(normalized);
       } catch (e: unknown) {
         setMemberError(e instanceof Error ? e.message : "エラーが発生しました");
       } finally {
@@ -61,21 +84,21 @@ function SettingsContent() {
       }
     };
     void loadMembers();
-  }, []);
+  }, [normalizeMember]);
 
   useEffect(() => {
     const loadClosingDay = async () => {
       try {
         setLoadingClosingDay(true);
-        const res = await fetch('/api/households/closing-day', { cache: 'no-store' });
-        if (!res.ok) throw new Error('締め日の取得に失敗しました');
+        const res = await fetch("/api/households/closing-day", { cache: "no-store" });
+        if (!res.ok) throw new Error("締め日の取得に失敗しました");
         const data = await res.json();
-        if (typeof data?.closing_day === 'number') {
+        if (typeof data?.closing_day === "number") {
           setClosingDay(String(data.closing_day));
         }
       } catch (err) {
         console.error(err);
-        show('締め日の取得に失敗しました', 'error');
+        show("締め日の取得に失敗しました", "error");
       } finally {
         setLoadingClosingDay(false);
       }
@@ -109,7 +132,8 @@ function SettingsContent() {
       });
       if (!res.ok) throw new Error("更新に失敗しました");
       const updated = await res.json();
-      setMembers((prev) => prev.map((m) => (m.user_id === userId ? updated : m)));
+      const normalized = normalizeMember(updated);
+      setMembers((prev) => prev.map((m) => (m.user_id === userId ? normalized : m)));
     } catch {
       alert("承認の更新に失敗しました");
     }
@@ -155,38 +179,51 @@ function SettingsContent() {
   const onSaveClosingDay = async () => {
     const day = Number(closingDay);
     if (!Number.isInteger(day) || day < 1 || day > 31) {
-      show('締め日は 1 日〜31 日の範囲で選択してください', 'error');
+      show("締め日は 1 日〜31 日の範囲で選択してください", "error");
       return;
     }
 
     setSavingClosingDay(true);
     try {
-      const res = await fetch('/api/households/closing-day', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/households/closing-day", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ closing_day: day }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        const message = body?.message ?? '締め日の保存に失敗しました';
+        const message = body?.message ?? "締め日の保存に失敗しました";
         throw new Error(message);
       }
       const data = await res.json().catch(() => ({ closing_day: day }));
-      if (typeof data?.closing_day === 'number') {
+      if (typeof data?.closing_day === "number") {
         setClosingDay(String(data.closing_day));
       }
-      show('締め日を保存しました', 'success');
+      show("締め日を保存しました", "success");
     } catch (err) {
       console.error(err);
-      show(err instanceof Error ? err.message : '締め日の保存に失敗しました', 'error');
+      show(err instanceof Error ? err.message : "締め日の保存に失敗しました", "error");
     } finally {
       setSavingClosingDay(false);
     }
   };
+
   return (
     <main>
       <AppHeader title="設定" />
       <div className="container mx-auto max-w-5xl space-y-6 p-4 md:p-6">
+        <Card className="space-y-4 p-4 md:p-6">
+          <div>
+            <h2 className="text-lg font-medium">アカウント設定</h2>
+            <p className="text-sm text-muted-foreground">表示名やアイコンなど、個人のアカウント設定はこちらから。</p>
+          </div>
+          <div>
+            <Link href="/settings/account">
+              <Button>アカウント設定ページを開く</Button>
+            </Link>
+          </div>
+        </Card>
+
         <Card className="space-y-4 p-4 md:p-6">
           <div>
             <h2 className="text-lg font-medium">家計簿の締め日</h2>
@@ -206,7 +243,7 @@ function SettingsContent() {
               ))}
             </Select>
             <Button onClick={onSaveClosingDay} disabled={savingClosingDay || loadingClosingDay}>
-              {savingClosingDay ? '保存中...' : '保存'}
+              {savingClosingDay ? "保存中..." : "保存"}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">保存すると家計簿の集計に反映されます。</p>
@@ -233,20 +270,6 @@ function SettingsContent() {
             <Link href="/settings/categories">
               <Button variant="secondary" className="h-9">
                 カテゴリ管理ページを開く
-              </Button>
-            </Link>
-          </div>
-        </Card>
-
-        <Card className="space-y-4 p-4 md:p-6">
-          <div>
-            <h2 className="text-lg font-medium">アカウント設定</h2>
-            <p className="text-sm text-muted-foreground">財布や口座の追加・編集は専用ページからまとめて行えます。</p>
-          </div>
-          <div>
-            <Link href="/settings/accounts">
-              <Button variant="secondary" className="h-9">
-                アカウント管理ページを開く
               </Button>
             </Link>
           </div>
@@ -287,24 +310,40 @@ function SettingsContent() {
             <p className="text-sm text-muted-foreground">メンバーがいません</p>
           ) : (
             <div className="space-y-2">
-              {members.map((m) => (
-                <div key={m.user_id} className="flex items-center justify-between rounded-xl border p-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{m.user_id}</div>
-                    <div className="text-xs text-muted-foreground">{m.role === "owner" ? "オーナー" : "メンバー"}</div>
+              {members.map((m) => {
+                const name = m.profile.display_name || DEFAULT_PROFILE_NAME;
+                return (
+                  <div key={m.user_id} className="flex items-center justify-between rounded-xl border p-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <UserAvatar name={name} imageUrl={m.profile.avatar_url ?? null} size="sm" />
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="truncate text-sm font-medium">{name}</div>
+                        <div className="text-xs text-muted-foreground">ID: {m.user_id}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {m.role === "owner" ? "オーナー" : "メンバー"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={clsx(
+                          "text-xs",
+                          m.approved ? "text-emerald-600" : "text-muted-foreground",
+                        )}
+                      >
+                        {m.approved ? "承認済み" : "未承認"}
+                      </span>
+                      <Button
+                        variant={m.approved ? "secondary" : "default"}
+                        onClick={() => toggleApprove(m.user_id, !m.approved)}
+                        className="h-8"
+                      >
+                        {m.approved ? "承認を取り消す" : "承認する"}
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{m.approved ? "承認済み" : "未承認"}</span>
-                    <Button
-                      variant={m.approved ? "secondary" : "default"}
-                      onClick={() => toggleApprove(m.user_id, !m.approved)}
-                      className="h-8"
-                    >
-                      {m.approved ? "承認を取り消す" : "承認する"}
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <p className="text-xs text-muted-foreground">オーナーのみ操作できます。</p>
@@ -323,4 +362,3 @@ function SettingsContent() {
     </main>
   );
 }
-

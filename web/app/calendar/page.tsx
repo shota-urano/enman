@@ -12,6 +12,8 @@ import { REACTION_PRESETS, REACTION_SUGGESTIONS, MAX_CUSTOM_REACTION_LENGTH, cou
 import AppHeader from "@/components/AppHeader";
 import TransactionEditDialog from "@/components/TransactionEditDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import UserAvatar from "@/components/UserAvatar";
+import { DEFAULT_PROFILE_NAME } from "@/lib/profile";
 
 type DailyTotalsItem = {
   date: string; // YYYY-MM-DD
@@ -44,6 +46,12 @@ type TxItem = {
   account_name?: string;
   place?: string;
   memo?: string;
+  created_by: string;
+  creator?: {
+    user_id: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
 };
 
 type CommentItem = {
@@ -52,6 +60,11 @@ type CommentItem = {
   body: string;
   created_by: string;
   created_at: string;
+  author: {
+    user_id: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
 };
 
 type ReactionItem = {
@@ -654,14 +667,25 @@ function CalendarScreen() {
               {(txList ?? []).length === 0 && (
                 <div className="text-sm text-muted-foreground">明細はありません</div>
               )}
-              {(txList ?? []).map((tx) => (
-                <Card key={tx.id} className="p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="text-sm font-medium">{tx.category_name ?? "(未分類)"}</div>
-                      {(tx.account_name || tx.place) && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {tx.account_name && <span>支出元: {tx.account_name}</span>}
+              {(txList ?? []).map((tx) => {
+                const creatorName = tx.creator?.display_name?.trim() ? tx.creator.display_name.trim() : DEFAULT_PROFILE_NAME;
+                const creatorAvatar = tx.creator?.avatar_url ?? null;
+                return (
+                  <Card key={tx.id} className="p-3 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <UserAvatar name={creatorName} imageUrl={creatorAvatar} size="sm" />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{creatorName}</div>
+                        <div className="text-[10px] text-muted-foreground">登録者</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">{tx.category_name ?? "(未分類)"}</div>
+                        {(tx.account_name || tx.place) && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {tx.account_name && <span>支出元: {tx.account_name}</span>}
                           {tx.account_name && tx.place && <span> ・ </span>}
                           {tx.place && <span>場所: {tx.place}</span>}
                         </div>
@@ -800,26 +824,37 @@ function CalendarScreen() {
                     </div>
                   )}
 
-                  {/* Comments */}
+                 {/* Comments */}
                   <div className="mt-3">
                     <div className="text-xs font-medium mb-1">コメント</div>
-                    <div className="space-y-1 max-h-40 overflow-auto">
-                      {(commentsMap[tx.id] ?? []).map((c) => (
-                        <div key={c.id} className="text-xs flex items-start gap-2">
-                          <div className="flex-1">
-                            <div className="text-muted-foreground">{new Date(c.created_at).toLocaleString()}</div>
-                            <div>{c.body}</div>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className={cn(chipButtonClass, "px-3 text-[color:var(--destructive)]")}
-                            onClick={() => deleteComment(tx.id, c.id)}
+                    <div className="space-y-1.5 max-h-40 overflow-auto">
+                      {(commentsMap[tx.id] ?? []).map((c) => {
+                        const authorName = c.author?.display_name?.trim() ? c.author.display_name.trim() : DEFAULT_PROFILE_NAME;
+                        const authorAvatar = c.author?.avatar_url ?? null;
+                        return (
+                          <div
+                            key={c.id}
+                            className="flex items-start gap-2 rounded-md bg-white/80 px-2 py-1"
                           >
-                            削除
-                          </Button>
-                        </div>
-                      ))}
+                            <UserAvatar name={authorName} imageUrl={authorAvatar} size="sm" />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium truncate">{authorName}</span>
+                                <span className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
+                              </div>
+                              <div className="mt-1 text-xs whitespace-pre-wrap">{c.body}</div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className={cn(chipButtonClass, "px-3 text-[color:var(--destructive)]")}
+                              onClick={() => deleteComment(tx.id, c.id)}
+                            >
+                              削除
+                            </Button>
+                          </div>
+                        )
+                      })}
                       {(commentsMap[tx.id] ?? []).length === 0 && (
                         <div className="text-xs text-muted-foreground">コメントはありません</div>
                       )}
@@ -845,8 +880,9 @@ function CalendarScreen() {
                       </Button>
                     </div>
                   </div>
-                </Card>
-              ))}
+                  </Card>
+                )
+              })}
             </div>
           )}
           </div>

@@ -74,6 +74,7 @@ describe('POST /api/subscriptions/:id/confirm', () => {
       account_id: 'a-1',
       place: null,
       memo: 'Netflix',
+      created_by: 'u-1',
     }
     subscriptionsRepository.confirm.mockResolvedValue(tx)
 

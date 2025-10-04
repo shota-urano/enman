@@ -104,6 +104,7 @@ describe('POST /api/transactions', () => {
       account_id: '22222222-2222-2222-8bbb-222222222222',
       place: 'スーパー',
       memo: '夕飯',
+      created_by: 'u-1',
     }
     transactionsRepository.create.mockResolvedValue(tx)
 

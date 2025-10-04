@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 const updateClosingDaySchema = z.object({
   closing_day: z
-    .number({ invalid_type_error: 'closing_day は数値で指定してください' })
+    .number()
     .int('closing_day は整数で指定してください')
     .min(1, 'closing_day は 1 以上 31 以下で指定してください')
     .max(31, 'closing_day は 1 以上 31 以下で指定してください'),

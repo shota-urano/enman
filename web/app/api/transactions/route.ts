@@ -5,6 +5,7 @@ import { transactionsRepository } from '@/server/repositories/transactionsReposi
 import { categoriesRepository } from '@/server/repositories/categoriesRepository'
 import { accountsRepository } from '@/server/repositories/accountsRepository'
 import { txCreateSchema } from '@/server/schemas/transaction'
+import { profilesRepository } from '@/server/repositories/profilesRepository'
 
 function isMonth(v: string) {
   return /^\d{4}-\d{2}$/.test(v)
@@ -44,27 +45,53 @@ export async function GET(req: NextRequest) {
         categoriesRepository.list(session.householdId!),
         accountsRepository.list(session.householdId!),
       ])
+      const profileMap = await profilesRepository.list(list.map((t) => t.created_by))
+      const defaultName = profilesRepository.DEFAULT_NAME
+
       const catMap = new Map(cats.map((c) => [c.id, c.name]))
       const accMap = new Map(accts.map((a) => [a.id, a.name]))
 
-      const shaped = list.map((t) => ({
-        id: t.id,
-        date: t.occurred_on,
-        amount: t.amount,
-        type: t.kind,
-        category_id: t.category_id,
-        account_id: t.account_id,
-        category_name: catMap.get(t.category_id),
-        memo: t.memo ?? undefined,
-        place: t.place ?? undefined,
-        account_name: accMap.get(t.account_id),
-      }))
+      const shaped = list.map((t) => {
+        const profile = profileMap[t.created_by]
+        return {
+          id: t.id,
+          date: t.occurred_on,
+          amount: t.amount,
+          type: t.kind,
+          category_id: t.category_id,
+          account_id: t.account_id,
+          category_name: catMap.get(t.category_id),
+          memo: t.memo ?? undefined,
+          place: t.place ?? undefined,
+          account_name: accMap.get(t.account_id),
+          created_by: t.created_by,
+          creator: {
+            user_id: t.created_by,
+            display_name: profile?.display_name ?? defaultName,
+            avatar_url: profile?.avatar_url ?? null,
+          },
+        }
+      })
       return NextResponse.json(shaped, { status: 200 })
+
     }
 
-    // Month-based listing keeps the original repository shape (backward compatible)
+    // Month-based listing keeps the original repository shape but enriches with creator metadata
     const list = await transactionsRepository.listByMonth(session.householdId!, month!, kind)
-    return NextResponse.json(list, { status: 200 })
+    if (list.length === 0) {
+      return NextResponse.json([], { status: 200 })
+    }
+    const profileMap = await profilesRepository.list(list.map((t) => t.created_by))
+    const defaultName = profilesRepository.DEFAULT_NAME
+    const enriched = list.map((t) => ({
+      ...t,
+      creator: {
+        user_id: t.created_by,
+        display_name: profileMap[t.created_by]?.display_name ?? defaultName,
+        avatar_url: profileMap[t.created_by]?.avatar_url ?? null,
+      },
+    }))
+    return NextResponse.json(enriched, { status: 200 })
   } catch (e: unknown) {
     const err = normalizeError(e)
     return NextResponse.json(toErrorBody(err), { status: err.status })

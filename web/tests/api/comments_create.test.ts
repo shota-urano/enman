@@ -17,7 +17,7 @@ vi.mock('@/server/services/commentService', () => ({
 import * as authModule from '@/server/utils/auth'
 import type { Session } from '@/server/utils/auth'
 import * as serviceModule from '@/server/services/commentService'
-import type { Comment } from '@/server/repositories/commentsRepository'
+import type { CommentWithAuthor } from '@/server/repositories/commentsRepository'
 import { unauthorized, forbidden } from '@/server/utils/errors'
 
 function makeReq(
@@ -80,12 +80,17 @@ describe('POST /api/comments', () => {
     const session: Session = { userId: 'u-1', token: 't', householdId: 'h-1' }
     getSession.mockResolvedValue(session)
     assertHouseholdMember.mockResolvedValue()
-    const created: Comment = {
+    const created: CommentWithAuthor = {
       id: 'cm-1',
       transaction_id: 'tx-1',
       body: 'テストコメント',
       created_by: 'u-1',
       created_at: '2025-09-02T12:00:00Z',
+      author: {
+        user_id: 'u-1',
+        display_name: 'ななし',
+        avatar_url: null,
+      },
     }
     commentService.create.mockResolvedValue(created)
 

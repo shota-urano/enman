@@ -17,7 +17,7 @@ vi.mock('@/server/repositories/commentsRepository', () => ({
 import * as authModule from '@/server/utils/auth'
 import type { Session } from '@/server/utils/auth'
 import * as repoModule from '@/server/repositories/commentsRepository'
-import type { Comment } from '@/server/repositories/commentsRepository'
+import type { CommentWithAuthor } from '@/server/repositories/commentsRepository'
 import { unauthorized, forbidden } from '@/server/utils/errors'
 
 function makeReq(url: string, headers: Record<string, string> = {}): NextRequest {
@@ -71,13 +71,18 @@ describe('GET /api/comments', () => {
     const session: Session = { userId: 'u-1', token: 't', householdId: 'h-1' }
     getSession.mockResolvedValue(session)
     assertHouseholdMember.mockResolvedValue()
-    const list: Comment[] = [
+    const list: CommentWithAuthor[] = [
       {
         id: 'cm-1',
         transaction_id: 'tx-1',
         body: 'テストコメント',
         created_by: 'u-1',
         created_at: '2025-09-02T12:00:00Z',
+        author: {
+          user_id: 'u-1',
+          display_name: 'ななし',
+          avatar_url: null,
+        },
       },
     ]
     commentsRepository.listByTransaction.mockResolvedValue(list)
