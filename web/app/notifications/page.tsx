@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
-import { REACTION_PRESETS, MAX_CUSTOM_REACTION_LENGTH, countEmojiUnits } from "@/lib/reactions";
+import { REACTION_PRESETS, REACTION_SUGGESTIONS, MAX_CUSTOM_REACTION_LENGTH, countEmojiUnits } from "@/lib/reactions";
 
 type Notification = {
   id: string;
@@ -684,6 +684,11 @@ function CommentDetailDialog(props: {
   const [customEmojiBusy, setCustomEmojiBusy] = useState(false);
   const trimmedCustomEmoji = customEmojiValue.trim();
   const canSubmitCustomEmoji = trimmedCustomEmoji.length > 0 && !customEmojiBusy && !loading;
+  const presetSet = useMemo(() => new Set<string>(REACTION_PRESETS), []);
+  const suggestionOptions = useMemo(
+    () => REACTION_SUGGESTIONS.filter((emoji) => !presetSet.has(emoji)),
+    [presetSet],
+  );
 
   const closeCustomEmoji = () => {
     setCustomEmojiActive(false);
@@ -692,8 +697,9 @@ function CommentDetailDialog(props: {
     setCustomEmojiBusy(false);
   };
 
-  const submitCustomEmoji = async () => {
-    const value = customEmojiValue.trim();
+  const submitCustomEmoji = async (valueOverride?: string) => {
+    const rawValue = valueOverride ?? customEmojiValue;
+    const value = rawValue.trim();
     if (!value) {
       setCustomEmojiError('絵文字を入力してください');
       return;
@@ -849,6 +855,27 @@ function CommentDetailDialog(props: {
                   <div className="text-xs text-muted-foreground">
                     {`スマホの絵文字キーボードから好きな絵文字を入力できます（最大${MAX_CUSTOM_REACTION_LENGTH}文字）。`}
                   </div>
+                  {suggestionOptions.length > 0 && (
+                    <div className="pt-1">
+                      <div className="text-xs text-muted-foreground mb-1">おすすめの絵文字</div>
+                      <div className="flex flex-wrap gap-1">
+                        {suggestionOptions.map((emoji) => (
+                          <Button
+                            key={emoji}
+                            size="sm"
+                            variant="ghost"
+                            className={chipButtonClass}
+                            disabled={customEmojiBusy || loading}
+                            onClick={() => {
+                              void submitCustomEmoji(emoji);
+                            }}
+                          >
+                            {emoji}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

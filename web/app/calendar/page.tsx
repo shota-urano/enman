@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { REACTION_PRESETS, MAX_CUSTOM_REACTION_LENGTH, countEmojiUnits } from "@/lib/reactions";
+import { REACTION_PRESETS, REACTION_SUGGESTIONS, MAX_CUSTOM_REACTION_LENGTH, countEmojiUnits } from "@/lib/reactions";
 import AppHeader from "@/components/AppHeader";
 import TransactionEditDialog from "@/components/TransactionEditDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -414,9 +414,10 @@ export default function CalendarPage() {
     setCustomReactionPending(false);
   }
 
-  async function submitCustomReaction(txId: string) {
+  async function submitCustomReaction(txId: string, explicitValue?: string) {
     if (customReactionTarget !== txId) return;
-    const value = customReactionInput.trim();
+    const rawValue = explicitValue ?? customReactionInput;
+    const value = rawValue.trim();
     if (!value) {
       setCustomReactionError('絵文字を入力してください');
       return;
@@ -440,6 +441,10 @@ export default function CalendarPage() {
     }
   }
 
+  async function handleSuggestionReaction(txId: string, emoji: string) {
+    await submitCustomReaction(txId, emoji);
+  }
+
   const monthTitle = `${currentMonth.getFullYear()}年 ${currentMonth.getMonth() + 1}月`;
   const deleteDescription = useMemo(() => {
     if (!deleteTarget) return undefined;
@@ -453,6 +458,11 @@ export default function CalendarPage() {
     "h-8 rounded-full bg-white/80 px-3 text-xs font-medium text-foreground shadow-neumorphic-soft transition-all hover:shadow-neumorphic-hover";
   const customReactionInputTrimmed = customReactionInput.trim();
   const canSubmitCustomReaction = customReactionInputTrimmed.length > 0 && !customReactionPending;
+  const presetSet = useMemo(() => new Set<string>(REACTION_PRESETS), []);
+  const suggestionOptions = useMemo(
+    () => REACTION_SUGGESTIONS.filter((emoji) => !presetSet.has(emoji)),
+    [presetSet],
+  );
 
   return (
     <div>
@@ -757,6 +767,27 @@ export default function CalendarPage() {
                       <div className="text-xs text-muted-foreground">
                         {`スマホの絵文字キーボードから好きな絵文字を入力できます（最大${MAX_CUSTOM_REACTION_LENGTH}文字）。`}
                       </div>
+                      {suggestionOptions.length > 0 && (
+                        <div className="pt-1">
+                          <div className="text-xs text-muted-foreground mb-1">おすすめの絵文字</div>
+                          <div className="flex flex-wrap gap-1">
+                            {suggestionOptions.map((emoji) => (
+                              <Button
+                                key={emoji}
+                                size="sm"
+                                variant="ghost"
+                                className={cn(chipButtonClass, "px-3")}
+                                disabled={customReactionPending}
+                                onClick={() => {
+                                  void handleSuggestionReaction(tx.id, emoji);
+                                }}
+                              >
+                                {emoji}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
