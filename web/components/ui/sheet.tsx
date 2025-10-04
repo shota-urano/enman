@@ -64,12 +64,32 @@ export function SheetTrigger({ asChild = false, children }: { asChild?: boolean;
 export function SheetContent({ className, children }: { className?: string; children: React.ReactNode }) {
   const { open, setOpen } = useSheet()
   const [isVisible, setIsVisible] = React.useState(false)
-  
+  const [isAnimating, setIsAnimating] = React.useState(false)
+  const [dragOffset, setDragOffset] = React.useState(0)
+  const [isDragging, setIsDragging] = React.useState(false)
+  const dragState = React.useRef<{ pointerId: number; startY: number } | null>(null)
+  const listenersRef = React.useRef<{
+    move: (event: PointerEvent) => void
+    up: (event: PointerEvent) => void
+    cancel: (event: PointerEvent) => void
+  } | null>(null)
+
+  const removePointerListeners = React.useCallback(() => {
+    if (!listenersRef.current) return
+    const { move, up, cancel } = listenersRef.current
+    window.removeEventListener("pointermove", move)
+    window.removeEventListener("pointerup", up)
+    window.removeEventListener("pointercancel", cancel)
+    listenersRef.current = null
+  }, [])
+
   React.useEffect(() => {
     if (open) {
       setIsVisible(true)
       // 開く際は少し遅延を入れてアニメーションを確実に見せる
       setTimeout(() => setIsAnimating(true), 10)
+      setDragOffset(0)
+      setIsDragging(false)
     } else {
       setIsAnimating(false)
       // 閉じるアニメーション後に非表示
@@ -77,31 +97,82 @@ export function SheetContent({ className, children }: { className?: string; chil
       return () => clearTimeout(timeout)
     }
   }, [open])
-  
-  const [isAnimating, setIsAnimating] = React.useState(false)
-  
+
+  React.useEffect(() => {
+    return () => {
+      removePointerListeners()
+    }
+  }, [removePointerListeners])
+
+  const onPointerDown = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+      const startY = event.clientY
+      dragState.current = { pointerId: event.pointerId, startY }
+      setIsDragging(true)
+      setDragOffset(0)
+
+      const handleMove = (e: PointerEvent) => {
+        if (!dragState.current || e.pointerId !== dragState.current.pointerId) return
+        const delta = Math.max(0, e.clientY - dragState.current.startY)
+        setDragOffset(delta)
+      }
+
+      const finishDrag = (e: PointerEvent, cancelled = false) => {
+        if (!dragState.current || e.pointerId !== dragState.current.pointerId) return
+        const delta = Math.max(0, e.clientY - dragState.current.startY)
+        dragState.current = null
+        removePointerListeners()
+        if (!cancelled && delta > 120) {
+          setIsDragging(false)
+          setOpen(false)
+          return
+        }
+        setIsDragging(false)
+        setDragOffset(0)
+      }
+
+      const handleUp = (e: PointerEvent) => finishDrag(e)
+      const handleCancel = (e: PointerEvent) => finishDrag(e, true)
+
+      listenersRef.current = { move: handleMove, up: handleUp, cancel: handleCancel }
+      window.addEventListener("pointermove", handleMove)
+      window.addEventListener("pointerup", handleUp)
+      window.addEventListener("pointercancel", handleCancel)
+    },
+    [removePointerListeners, setOpen],
+  )
+
   if (!isVisible) return null
-  
+
+  const translateBase = isAnimating ? "0%" : "100%"
+  const transformValue = `translateY(calc(${translateBase} + ${dragOffset}px))`
+  const transitionValue = isDragging ? "none" : "transform 500ms ease-out"
+
   return (
     <div className="fixed inset-0 z-[60]">
-      <div 
+      <div
         className={cn(
           "absolute inset-0 bg-[#eef1f6]/70 backdrop-blur-sm transition-opacity duration-500",
-          isAnimating ? "opacity-100" : "opacity-0"
-        )} 
-        onClick={() => setOpen(false)} 
+          isAnimating ? "opacity-100" : "opacity-0",
+        )}
+        onClick={() => setOpen(false)}
       />
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 w-full rounded-t-[40px] border border-white/40 bg-white/85 text-foreground shadow-neumorphic bg-surface-neumorphic backdrop-blur-xl",
-          "transform transition-transform duration-500 ease-out",
-          isAnimating ? "translate-y-0" : "translate-y-full",
           className,
         )}
         role="dialog"
         aria-modal="true"
+        style={{ transform: transformValue, transition: transitionValue }}
       >
-        <div className="mx-auto my-3 h-1.5 w-14 rounded-full bg-gradient-to-r from-muted/60 via-white/90 to-muted/60" aria-hidden />
+        <div
+          className="mx-auto my-3 h-1.5 w-14 cursor-grab rounded-full bg-gradient-to-r from-muted/60 via-white/90 to-muted/60"
+          aria-hidden
+          onPointerDown={onPointerDown}
+        />
         {children}
       </div>
     </div>
