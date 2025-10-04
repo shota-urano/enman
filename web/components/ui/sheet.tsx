@@ -10,6 +10,13 @@ type SheetContextValue = {
 
 const SheetContext = React.createContext<SheetContextValue | null>(null)
 
+type SheetDragContextValue = {
+  onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void
+}
+
+const SheetDragContext = React.createContext<SheetDragContextValue | null>(null)
+const interactiveTags = new Set(["BUTTON", "A", "INPUT", "TEXTAREA", "SELECT", "LABEL"])
+
 export function useSheet() {
   const ctx = React.useContext(SheetContext)
   if (!ctx) throw new Error('useSheet は <Sheet> の内部で使用してください')
@@ -106,6 +113,11 @@ export function SheetContent({ className, children }: { className?: string; chil
 
   const onPointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement | null
+      if (target && (interactiveTags.has(target.tagName) || target.closest('[data-sheet-drag-cancel="true"]'))) {
+        return
+      }
+
       event.preventDefault()
       event.stopPropagation()
       const startY = event.clientY
@@ -151,45 +163,52 @@ export function SheetContent({ className, children }: { className?: string; chil
   const transitionValue = isDragging ? "none" : "transform 500ms ease-out"
 
   return (
-    <div className="fixed inset-0 z-[60]">
-      <div
-        className={cn(
-          "absolute inset-0 bg-[#eef1f6]/70 backdrop-blur-sm transition-opacity duration-500",
-          isAnimating ? "opacity-100" : "opacity-0",
-        )}
-        onClick={() => setOpen(false)}
-      />
-      <div
-        className={cn(
-          "absolute inset-x-0 bottom-0 w-full rounded-t-[40px] border border-white/40 bg-white/85 text-foreground shadow-neumorphic bg-surface-neumorphic backdrop-blur-xl",
-          className,
-        )}
-        role="dialog"
-        aria-modal="true"
-        style={{ transform: transformValue, transition: transitionValue }}
-      >
+    <SheetDragContext.Provider value={{ onPointerDown }}>
+      <div className="fixed inset-0 z-[60]">
         <div
-          className="mx-auto my-3 h-1.5 w-14 cursor-grab rounded-full bg-gradient-to-r from-muted/60 via-white/90 to-muted/60"
-          aria-hidden
-          // On iOS/Safari, vertical panning consumes the gesture for page scroll and
-          // pointermove won't fire unless we opt out. touch-action: none ensures the
-          // drag-to-close gesture reliably works when starting from the handle.
-          style={{ touchAction: 'none' }}
-          onPointerDown={onPointerDown}
+          className={cn(
+            "absolute inset-0 bg-[#eef1f6]/70 backdrop-blur-sm transition-opacity duration-500",
+            isAnimating ? "opacity-100" : "opacity-0",
+          )}
+          onClick={() => setOpen(false)}
         />
-        {children}
+        <div
+          className={cn(
+            "absolute inset-x-0 bottom-0 w-full rounded-t-[40px] border border-white/40 bg-white/85 text-foreground shadow-neumorphic bg-surface-neumorphic backdrop-blur-xl",
+            className,
+          )}
+          role="dialog"
+          aria-modal="true"
+          style={{ transform: transformValue, transition: transitionValue }}
+        >
+          <div
+            className="mx-auto my-3 h-1.5 w-14 cursor-grab rounded-full bg-gradient-to-r from-muted/60 via-white/90 to-muted/60"
+            aria-hidden
+            // On iOS/Safari, vertical panning consumes the gesture for page scroll and
+            // pointermove won't fire unless we opt out. touch-action: none ensures the
+            // drag-to-close gesture reliably works when starting from the handle.
+            style={{ touchAction: 'none' }}
+            onPointerDown={onPointerDown}
+          />
+          {children}
+        </div>
       </div>
-    </div>
+    </SheetDragContext.Provider>
   )
 }
 
 export function SheetHeader({ className, children }: { className?: string; children?: React.ReactNode }) {
+  const dragCtx = React.useContext(SheetDragContext)
   return (
     <div
       className={cn(
         "px-6 pb-5 text-sm font-medium text-muted-foreground",
         className,
       )}
+      style={dragCtx ? { touchAction: "none" } : undefined}
+      // Allow the header region to act as an extended drag handle so the sheet can
+      // be closed even when the user starts dragging from the date label area.
+      onPointerDown={dragCtx?.onPointerDown}
     >
       {children}
     </div>
