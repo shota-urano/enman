@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
+import { REACTION_PRESETS, MAX_CUSTOM_REACTION_LENGTH, countEmojiUnits } from "@/lib/reactions";
 
 type Notification = {
   id: string;
@@ -293,18 +294,31 @@ function NotificationsContent() {
     }
   };
 
-  const toggleDetailReaction = async (emoji: string) => {
-    if (!detailTarget) return;
+  const toggleDetailReaction = async (emoji: string): Promise<boolean> => {
+    if (!detailTarget) return false;
     try {
       const res = await fetch('/api/reactions/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transaction_id: detailTarget.txId, emoji }),
       });
-      if (!res.ok) throw new Error('リアクション更新に失敗しました');
+      if (!res.ok) {
+        let message = 'リアクション更新に失敗しました';
+        try {
+          const body = await res.json();
+          if (body && typeof body === 'object' && typeof (body as { message?: unknown }).message === 'string') {
+            message = (body as { message: string }).message;
+          }
+        } catch {
+          // ignore json parse error
+        }
+        throw new Error(message);
+      }
       await refreshDetailReactions(detailTarget.txId);
+      return true;
     } catch (e: unknown) {
       show(e instanceof Error ? e.message : 'リアクション更新に失敗しました', 'error');
+      return false;
     }
   };
 
@@ -651,7 +665,7 @@ function CommentDetailDialog(props: {
   onCommentChange: (v: string) => void;
   onSubmitComment: () => void;
   commentBusy?: boolean;
-  onToggleReaction: (emoji: string) => void;
+  onToggleReaction: (emoji: string) => Promise<boolean>;
 }) {
   const { loading, error, tx, reactions, comments, commentValue, commentBusy } = props;
   const reactionSummary = useMemo(() => {
@@ -664,6 +678,44 @@ function CommentDetailDialog(props: {
   const chipButtonClass =
     "h-8 rounded-full bg-white/80 px-3 text-xs font-medium text-foreground shadow-neumorphic-soft transition-all hover:shadow-neumorphic-hover";
   const canSubmit = commentValue.trim().length > 0 && !commentBusy && !loading;
+  const [customEmojiActive, setCustomEmojiActive] = useState(false);
+  const [customEmojiValue, setCustomEmojiValue] = useState("");
+  const [customEmojiError, setCustomEmojiError] = useState<string | null>(null);
+  const [customEmojiBusy, setCustomEmojiBusy] = useState(false);
+  const trimmedCustomEmoji = customEmojiValue.trim();
+  const canSubmitCustomEmoji = trimmedCustomEmoji.length > 0 && !customEmojiBusy && !loading;
+
+  const closeCustomEmoji = () => {
+    setCustomEmojiActive(false);
+    setCustomEmojiValue('');
+    setCustomEmojiError(null);
+    setCustomEmojiBusy(false);
+  };
+
+  const submitCustomEmoji = async () => {
+    const value = customEmojiValue.trim();
+    if (!value) {
+      setCustomEmojiError('絵文字を入力してください');
+      return;
+    }
+    if (countEmojiUnits(value) > MAX_CUSTOM_REACTION_LENGTH) {
+      setCustomEmojiError(`絵文字は最大${MAX_CUSTOM_REACTION_LENGTH}文字まで入力できます`);
+      return;
+    }
+    setCustomEmojiError(null);
+    setCustomEmojiBusy(true);
+    let ok = false;
+    try {
+      ok = await props.onToggleReaction(value);
+    } finally {
+      setCustomEmojiBusy(false);
+    }
+    if (ok) {
+      closeCustomEmoji();
+    } else {
+      setCustomEmojiError('リアクションの更新に失敗しました');
+    }
+  };
 
   return (
     <Dialog open={props.open} onOpenChange={(o) => !o && props.onClose()}>
@@ -718,20 +770,87 @@ function CommentDetailDialog(props: {
                   <span className="text-xs text-muted-foreground">なし</span>
                 )}
                 <div className="ml-auto flex gap-1">
-                  {['👍', '❤️', '🎉'].map((emoji) => (
+                  {REACTION_PRESETS.map((emoji) => (
                     <Button
                       key={emoji}
                       size="sm"
                       variant="ghost"
                       className={chipButtonClass}
-                      disabled={loading}
-                      onClick={() => props.onToggleReaction(emoji)}
+                      disabled={loading || customEmojiBusy}
+                      onClick={() => {
+                        void props.onToggleReaction(emoji);
+                      }}
                     >
                       {emoji}
                     </Button>
                   ))}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={chipButtonClass}
+                    disabled={loading || customEmojiBusy}
+                    onClick={() => {
+                      if (customEmojiActive) closeCustomEmoji();
+                      else {
+                        setCustomEmojiActive(true);
+                        setCustomEmojiValue('');
+                        setCustomEmojiError(null);
+                      }
+                    }}
+                    aria-label="他の絵文字でリアクション"
+                  >
+                    ＋
+                  </Button>
                 </div>
               </div>
+
+              {customEmojiActive && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      value={customEmojiValue}
+                      onChange={(e) => {
+                        setCustomEmojiValue(e.target.value);
+                        if (customEmojiError) setCustomEmojiError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && canSubmitCustomEmoji) {
+                          e.preventDefault();
+                          void submitCustomEmoji();
+                        }
+                      }}
+                      disabled={customEmojiBusy || loading}
+                      placeholder="例: 👇"
+                      className="h-9 w-24"
+                      inputMode="text"
+                    />
+                    <Button
+                      size="sm"
+                      className="px-4"
+                      disabled={!canSubmitCustomEmoji}
+                      onClick={() => {
+                        void submitCustomEmoji();
+                      }}
+                    >
+                      追加
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={customEmojiBusy}
+                      onClick={closeCustomEmoji}
+                    >
+                      キャンセル
+                    </Button>
+                  </div>
+                  {customEmojiError && (
+                    <div className="text-xs text-[color:var(--destructive)]">{customEmojiError}</div>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    {`スマホの絵文字キーボードから好きな絵文字を入力できます（最大${MAX_CUSTOM_REACTION_LENGTH}文字）。`}
+                  </div>
+                </div>
+              )}
 
               <div className="mt-3">
                 <div className="text-xs font-medium mb-1">コメント</div>

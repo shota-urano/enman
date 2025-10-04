@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { REACTION_PRESETS, MAX_CUSTOM_REACTION_LENGTH, countEmojiUnits } from "@/lib/reactions";
 import AppHeader from "@/components/AppHeader";
 import TransactionEditDialog from "@/components/TransactionEditDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -110,6 +112,12 @@ export default function CalendarPage() {
   const [editingTx, setEditingTx] = useState<TxItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TxItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [customReactionTarget, setCustomReactionTarget] = useState<string | null>(null);
+  const [customReactionInput, setCustomReactionInput] = useState("");
+  const [customReactionError, setCustomReactionError] = useState<string | null>(null);
+  const [customReactionPending, setCustomReactionPending] = useState(false);
+
+  const { show } = useToast();
 
   const monthKey = useMemo(() => formatMonthKey(currentMonth), [currentMonth]);
 
@@ -359,23 +367,76 @@ export default function CalendarPage() {
     return Array.from(map.entries()).map(([emoji, count]) => ({ emoji, count }));
   }
 
-  async function toggleReaction(txId: string, emoji: string) {
+  async function toggleReaction(txId: string, emoji: string): Promise<boolean> {
     try {
       const res = await fetch('/api/reactions/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transaction_id: txId, emoji }),
       });
-      if (!res.ok) throw await res.json();
+      if (!res.ok) {
+        let message = 'リアクション更新に失敗しました';
+        try {
+          const body = await res.json();
+          if (body && typeof body === 'object' && typeof (body as { message?: unknown }).message === 'string') {
+            message = (body as { message: string }).message;
+          }
+        } catch (err) {
+          // ignore json parse errors
+        }
+        throw new Error(message);
+      }
       // Refresh list after toggle
       const listRes = await fetch(`/api/reactions?transaction_id=${txId}`);
       if (listRes.ok) {
         const rJson = (await listRes.json()) as ReactionItem[];
         setReactionsMap((m) => ({ ...m, [txId]: rJson }));
       }
+      return true;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'リアクション更新に失敗しました';
-      alert(msg);
+      show(msg, 'error');
+      return false;
+    }
+  }
+
+  function openCustomReaction(txId: string) {
+    setCustomReactionTarget(txId);
+    setCustomReactionInput('');
+    setCustomReactionError(null);
+    setCustomReactionPending(false);
+  }
+
+  function closeCustomReaction() {
+    setCustomReactionTarget(null);
+    setCustomReactionInput('');
+    setCustomReactionError(null);
+    setCustomReactionPending(false);
+  }
+
+  async function submitCustomReaction(txId: string) {
+    if (customReactionTarget !== txId) return;
+    const value = customReactionInput.trim();
+    if (!value) {
+      setCustomReactionError('絵文字を入力してください');
+      return;
+    }
+    if (countEmojiUnits(value) > MAX_CUSTOM_REACTION_LENGTH) {
+      setCustomReactionError(`絵文字は最大${MAX_CUSTOM_REACTION_LENGTH}文字まで入力できます`);
+      return;
+    }
+    setCustomReactionError(null);
+    setCustomReactionPending(true);
+    let ok = false;
+    try {
+      ok = await toggleReaction(txId, value);
+    } finally {
+      setCustomReactionPending(false);
+    }
+    if (ok) {
+      closeCustomReaction();
+    } else {
+      setCustomReactionError('リアクションの更新に失敗しました');
     }
   }
 
@@ -390,6 +451,8 @@ export default function CalendarPage() {
     "h-10 w-10 rounded-full p-0 text-base font-semibold shadow-neumorphic-soft hover:shadow-neumorphic-hover";
   const chipButtonClass =
     "h-8 rounded-full bg-white/80 px-3 text-xs font-medium text-foreground shadow-neumorphic-soft transition-all hover:shadow-neumorphic-hover";
+  const customReactionInputTrimmed = customReactionInput.trim();
+  const canSubmitCustomReaction = customReactionInputTrimmed.length > 0 && !customReactionPending;
 
   return (
     <div>
@@ -618,19 +681,84 @@ export default function CalendarPage() {
                       <span key={r.emoji} className="text-sm">{r.emoji} {r.count}</span>
                     ))}
                     <div className="ml-auto flex gap-1">
-                      {['👍','❤️','🎉'].map((e) => (
+                      {REACTION_PRESETS.map((e) => (
                         <Button
                           key={e}
                           size="sm"
                           variant="ghost"
                           className={cn(chipButtonClass, "px-3")}
-                          onClick={() => toggleReaction(tx.id, e)}
+                          onClick={() => {
+                            void toggleReaction(tx.id, e);
+                          }}
                         >
                           {e}
                         </Button>
                       ))}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className={cn(chipButtonClass, "px-3")}
+                        onClick={() => {
+                          if (customReactionTarget === tx.id) {
+                            closeCustomReaction();
+                          } else {
+                            openCustomReaction(tx.id);
+                          }
+                        }}
+                        aria-label="他の絵文字でリアクション"
+                      >
+                        ＋
+                      </Button>
                     </div>
                   </div>
+
+                  {customReactionTarget === tx.id && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Input
+                          value={customReactionInput}
+                          onChange={(e) => {
+                            setCustomReactionInput(e.target.value);
+                            if (customReactionError) setCustomReactionError(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && canSubmitCustomReaction) {
+                              e.preventDefault();
+                              void submitCustomReaction(tx.id);
+                            }
+                          }}
+                          disabled={customReactionPending}
+                          placeholder="例: 👇"
+                          className="h-9 w-24"
+                          inputMode="text"
+                        />
+                        <Button
+                          size="sm"
+                          className="px-4"
+                          disabled={!canSubmitCustomReaction}
+                          onClick={() => {
+                            void submitCustomReaction(tx.id);
+                          }}
+                        >
+                          追加
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={customReactionPending}
+                          onClick={closeCustomReaction}
+                        >
+                          キャンセル
+                        </Button>
+                      </div>
+                      {customReactionError && (
+                        <div className="text-xs text-[color:var(--destructive)]">{customReactionError}</div>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        {`スマホの絵文字キーボードから好きな絵文字を入力できます（最大${MAX_CUSTOM_REACTION_LENGTH}文字）。`}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Comments */}
                   <div className="mt-3">
