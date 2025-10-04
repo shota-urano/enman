@@ -55,6 +55,7 @@ function SubscriptionsContent() {
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [edit, setEdit] = useState<Subscription | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Subscription | null>(null)
   const searchParams = useSearchParams()
   const highlightId = searchParams.get("highlight")
 
@@ -142,14 +143,14 @@ function SubscriptionsContent() {
     })
   }
 
-  const onDelete = async (id: string) => {
-    if (!confirm("このサブスクリプションを削除しますか？")) return
+  const performDelete = async (id: string) => {
     setError(null)
     startTransition(() => {
       void (async () => {
         try {
           const res = await fetch(`/api/subscriptions/${id}`, { method: "DELETE" })
           if (!res.ok) throw new Error((await res.text()) || '削除に失敗しました')
+          setDeleteTarget(null)
           await reload()
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : String(e)
@@ -302,7 +303,7 @@ function SubscriptionsContent() {
                 </Button>
                 <Button 
                   variant="destructive" 
-                  onClick={() => onDelete(s.id)}
+                  onClick={() => setDeleteTarget(s)}
                   className="rounded-xl px-4 py-2 text-sm"
                   style={{
                     background: 'linear-gradient(145deg, #fecaca, #ef4444)',
@@ -525,6 +526,50 @@ function SubscriptionsContent() {
       </div>
 
       {/* 支払い確認ダイアログは通知ページに移管 */}
+
+      {/* Delete Confirm Dialog */}
+      <div style={{ zIndex: 60 }}>
+        <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <DialogContent className="rounded-3xl border-0 bg-gradient-to-br from-slate-50 to-white shadow-[20px_20px_60px_#e2e8f0,-20px_-20px_60px_#ffffff] z-[60] max-w-md w-[calc(100%-2rem)] mx-auto mt-4 mb-20 p-8">
+            <DialogHeader className="text-xl font-bold text-gray-800">サブスクリプションを削除</DialogHeader>
+            <div className="space-y-4 text-sm text-gray-700">
+              <p>
+                {deleteTarget ? `「${deleteTarget.name}」を削除します。` : '選択中のサブスクリプションを削除します。'}
+              </p>
+              <p className="text-gray-600">
+                関連する取引は削除されませんが、このサブスクリプションとのリンクは解除されます。
+              </p>
+              <p className="text-gray-500">この操作は取り消せません。</p>
+            </div>
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
+              <Button
+                variant="secondary"
+                onClick={() => setDeleteTarget(null)}
+                className="rounded-xl px-6 py-2"
+                style={{
+                  background: 'linear-gradient(145deg, #e2e8f0, #f1f5f9)',
+                  boxShadow: '6px 6px 12px #cbd5e1, -6px -6px 12px #ffffff',
+                  border: 'none'
+                }}
+              >
+                キャンセル
+              </Button>
+              <Button
+                onClick={() => deleteTarget && performDelete(deleteTarget.id)}
+                className="rounded-xl px-6 py-2"
+                style={{
+                  background: 'linear-gradient(145deg, #ef4444, #b91c1c)',
+                  boxShadow: '6px 6px 12px #ef444440, -6px -6px 12px #ffffff40',
+                  border: 'none',
+                  color: 'white'
+                }}
+              >
+                削除する
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   )
 }

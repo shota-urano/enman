@@ -171,6 +171,10 @@ export function SheetContent({ className, children }: { className?: string; chil
         <div
           className="mx-auto my-3 h-1.5 w-14 cursor-grab rounded-full bg-gradient-to-r from-muted/60 via-white/90 to-muted/60"
           aria-hidden
+          // On iOS/Safari, vertical panning consumes the gesture for page scroll and
+          // pointermove won't fire unless we opt out. touch-action: none ensures the
+          // drag-to-close gesture reliably works when starting from the handle.
+          style={{ touchAction: 'none' }}
           onPointerDown={onPointerDown}
         />
         {children}
