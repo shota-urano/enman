@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Geist_Mono, M_PLUS_Rounded_1c } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/toast";
@@ -34,10 +34,6 @@ export const metadata: Metadata = {
   },
   description: "Harmony & Finances for modern households.",
   manifest: "/manifest.webmanifest",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fdeff4" },
-    { media: "(prefers-color-scheme: dark)", color: "#181a1f" },
-  ],
   icons: {
     icon: [
       { url: "/logo.png", type: "image/png", sizes: "1024x1024" },
@@ -55,6 +51,13 @@ export const metadata: Metadata = {
     title: "enman",
     statusBarStyle: "default",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fdeff4" },
+    { media: "(prefers-color-scheme: dark)", color: "#181a1f" },
+  ],
 };
 
 export default function RootLayout({

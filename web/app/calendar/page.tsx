@@ -390,7 +390,7 @@ function CalendarScreen() {
           if (body && typeof body === 'object' && typeof (body as { message?: unknown }).message === 'string') {
             message = (body as { message: string }).message;
           }
-        } catch (err) {
+        } catch {
           // ignore json parse errors
         }
         throw new Error(message);
