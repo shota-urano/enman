@@ -35,7 +35,6 @@ function AccountSettingsContent() {
   const [displayName, setDisplayName] = useState("");
   const [savingName, setSavingName] = useState(false);
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -120,7 +119,6 @@ function AccountSettingsContent() {
     }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     const nextPreview = URL.createObjectURL(file);
-    setSelectedFile(file);
     setPreviewUrl(nextPreview);
     void handleAvatarUpload(file);
   };
@@ -145,7 +143,6 @@ function AccountSettingsContent() {
           ? { ...prev, avatar_url: data.avatar_url ?? null, avatar_path: data.avatar_path ?? prev.avatar_path ?? null }
           : { display_name: displayName.trim() || DEFAULT_PROFILE_NAME, avatar_url: data.avatar_url ?? null, avatar_path: data.avatar_path ?? null },
       );
-      setSelectedFile(null);
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
@@ -171,7 +168,6 @@ function AccountSettingsContent() {
       if (!res.ok) throw new Error("アイコンの削除に失敗しました");
       const data = (await res.json()) as ProfileResponse;
       setProfile({ ...data, display_name: data.display_name?.trim() || DEFAULT_PROFILE_NAME, avatar_url: data.avatar_url ?? null });
-      setSelectedFile(null);
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);

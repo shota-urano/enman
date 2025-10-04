@@ -53,17 +53,30 @@ function SettingsContent() {
   const { show } = useToast();
 
   const normalizeMember = useCallback(
-    (raw: any): Member => ({
-      user_id: String(raw?.user_id ?? ""),
-      role: raw?.role === "owner" ? "owner" : "member",
-      approved: Boolean(raw?.approved),
-      joined_at: raw?.joined_at ?? null,
-      created_at: raw?.created_at ?? new Date().toISOString(),
-      profile: {
-        display_name: raw?.profile?.display_name?.trim() ? raw.profile.display_name.trim() : DEFAULT_PROFILE_NAME,
-        avatar_url: raw?.profile?.avatar_url ?? null,
-      },
-    }),
+    (raw: unknown): Member => {
+      const data = raw as {
+        user_id?: string;
+        role?: string;
+        approved?: boolean;
+        joined_at?: string | null;
+        created_at?: string;
+        profile?: {
+          display_name?: string;
+          avatar_url?: string | null;
+        };
+      };
+      return {
+        user_id: String(data?.user_id ?? ""),
+        role: data?.role === "owner" ? "owner" : "member",
+        approved: Boolean(data?.approved),
+        joined_at: data?.joined_at ?? null,
+        created_at: data?.created_at ?? new Date().toISOString(),
+        profile: {
+          display_name: data?.profile?.display_name?.trim() ? data.profile.display_name.trim() : DEFAULT_PROFILE_NAME,
+          avatar_url: data?.profile?.avatar_url ?? null,
+        },
+      };
+    },
     [],
   );
 
