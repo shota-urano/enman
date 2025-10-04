@@ -12,19 +12,6 @@ import { useToast } from "@/components/ui/toast";
 import AppHeader from "@/components/AppHeader";
 import { createSupabaseBrowser } from "@/lib/supabaseBrowser";
 
-type Category = {
-  id: string
-  name: string
-  type: "income" | "expense"
-  sort_order: number | null
-}
-
-type Account = {
-  id: string
-  name: string
-  sort_order: number | null
-}
-
 export default function SettingsPage() {
   return (
     <RequireAuth>
@@ -36,10 +23,6 @@ export default function SettingsPage() {
 function SettingsContent() {
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [loadingInvite, setLoadingInvite] = useState(false);
-
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loadingMasters, setLoadingMasters] = useState(false);
 
   const [members, setMembers] = useState<
     Array<{
@@ -53,33 +36,14 @@ function SettingsContent() {
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [memberError, setMemberError] = useState<string | null>(null);
 
-  const [catName, setCatName] = useState("");
-  const [catType, setCatType] = useState<"income" | "expense">("expense");
-  const [accName, setAccName] = useState("");
-
   const [closingDay, setClosingDay] = useState<string>("31");
+  const [loadingClosingDay, setLoadingClosingDay] = useState(true);
+  const [savingClosingDay, setSavingClosingDay] = useState(false);
   const days = useMemo(() => Array.from({ length: 31 }).map((_, i) => String(i + 1)), []);
 
   const [signingOut, setSigningOut] = useState(false);
   const router = useRouter();
   const { show } = useToast();
-
-  useEffect(() => {
-    const load = async () => {
-      setLoadingMasters(true);
-      try {
-        const [catsRes, accsRes] = await Promise.all([
-          fetch("/api/categories", { cache: "no-store" }),
-          fetch("/api/accounts", { cache: "no-store" }),
-        ]);
-        if (catsRes.ok) setCategories(await catsRes.json());
-        if (accsRes.ok) setAccounts(await accsRes.json());
-      } finally {
-        setLoadingMasters(false);
-      }
-    };
-    load();
-  }, []);
 
   useEffect(() => {
     const loadMembers = async () => {
@@ -96,8 +60,29 @@ function SettingsContent() {
         setLoadingMembers(false);
       }
     };
-    loadMembers();
+    void loadMembers();
   }, []);
+
+  useEffect(() => {
+    const loadClosingDay = async () => {
+      try {
+        setLoadingClosingDay(true);
+        const res = await fetch('/api/households/closing-day', { cache: 'no-store' });
+        if (!res.ok) throw new Error('締め日の取得に失敗しました');
+        const data = await res.json();
+        if (typeof data?.closing_day === 'number') {
+          setClosingDay(String(data.closing_day));
+        }
+      } catch (err) {
+        console.error(err);
+        show('締め日の取得に失敗しました', 'error');
+      } finally {
+        setLoadingClosingDay(false);
+      }
+    };
+
+    void loadClosingDay();
+  }, [show]);
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -167,101 +152,70 @@ function SettingsContent() {
     }
   };
 
-  const createCategory = async () => {
-    if (!catName.trim()) return;
-    const payload = { name: catName.trim(), type: catType };
-    const res = await fetch("/api/categories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      alert("カテゴリ作成に失敗しました");
-      return;
-    }
-    setCatName("");
-    const cats = await fetch("/api/categories", { cache: "no-store" }).then((r) => r.json());
-    setCategories(cats);
-  };
-
-  const updateCategoryName = async (id: string, name: string) => {
-    const res = await fetch(`/api/categories/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    if (!res.ok) {
-      alert("カテゴリ更新に失敗しました");
-      return;
-    }
-    const cats = await fetch("/api/categories", { cache: "no-store" }).then((r) => r.json());
-    setCategories(cats);
-  };
-
-  const createAccount = async () => {
-    if (!accName.trim()) return;
-    const payload = { name: accName.trim(), type: "cash" as const };
-    const res = await fetch("/api/accounts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      alert("アカウント作成に失敗しました");
-      return;
-    }
-    setAccName("");
-    const accs = await fetch("/api/accounts", { cache: "no-store" }).then((r) => r.json());
-    setAccounts(accs);
-  };
-
-  const updateAccountName = async (id: string, name: string) => {
-    const res = await fetch(`/api/accounts/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    if (!res.ok) {
-      alert("アカウント更新に失敗しました");
-      return;
-    }
-    const accs = await fetch("/api/accounts", { cache: "no-store" }).then((r) => r.json());
-    setAccounts(accs);
-  };
-
   const onSaveClosingDay = async () => {
-    alert(`締め日 ${closingDay} 日の保存は後続タスクで実装します`);
-  };
+    const day = Number(closingDay);
+    if (!Number.isInteger(day) || day < 1 || day > 31) {
+      show('締め日は 1 日〜31 日の範囲で選択してください', 'error');
+      return;
+    }
 
+    setSavingClosingDay(true);
+    try {
+      const res = await fetch('/api/households/closing-day', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ closing_day: day }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const message = body?.message ?? '締め日の保存に失敗しました';
+        throw new Error(message);
+      }
+      const data = await res.json().catch(() => ({ closing_day: day }));
+      if (typeof data?.closing_day === 'number') {
+        setClosingDay(String(data.closing_day));
+      }
+      show('締め日を保存しました', 'success');
+    } catch (err) {
+      console.error(err);
+      show(err instanceof Error ? err.message : '締め日の保存に失敗しました', 'error');
+    } finally {
+      setSavingClosingDay(false);
+    }
+  };
   return (
     <main>
-      <AppHeader
-        title="設定"
-        right={
-          <Link href="/calendar">
-            <Button variant="secondary" className="h-9">
-              カレンダー
-            </Button>
-          </Link>
-        }
-      />
-      <div className="container mx-auto max-w-5xl space-y-8 p-4 md:p-6">
-        <Card className="space-y-3 p-4">
+      <AppHeader title="設定" />
+      <div className="container mx-auto max-w-5xl space-y-6 p-4 md:p-6">
+        <Card className="space-y-4 p-4 md:p-6">
           <div>
-            <h2 className="text-lg font-medium">アカウント</h2>
-            <p className="text-sm text-muted-foreground">
-              別のアカウントを利用する場合はログアウトしてください。
-            </p>
+            <h2 className="text-lg font-medium">家計簿の締め日</h2>
+            <p className="text-sm text-muted-foreground">毎月の集計に使う締め日を選択してください。</p>
           </div>
-          <Button variant="secondary" onClick={handleSignOut} disabled={signingOut}>
-            {signingOut ? "ログアウト中..." : "ログアウト"}
-          </Button>
+          <div className="flex items-center gap-3">
+            <Select
+              className="w-full sm:w-24"
+              value={closingDay}
+              onChange={(v) => setClosingDay(v)}
+              disabled={loadingClosingDay || savingClosingDay}
+            >
+              {days.map((d) => (
+                <option key={d} value={d}>
+                  {`${d}日`}
+                </option>
+              ))}
+            </Select>
+            <Button onClick={onSaveClosingDay} disabled={savingClosingDay || loadingClosingDay}>
+              {savingClosingDay ? '保存中...' : '保存'}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">保存すると家計簿の集計に反映されます。</p>
         </Card>
 
-        <Card id="subscriptions" className="space-y-3 p-4">
+        <Card className="space-y-4 p-4 md:p-6">
           <div>
             <h2 className="text-lg font-medium">サブスク</h2>
-            <p className="text-sm text-muted-foreground">定期支出の確認や管理はここから行えます。</p>
+            <p className="text-sm text-muted-foreground">定期支出の確認や管理はこちらから行えます。</p>
           </div>
           <div>
             <Link href="/subscriptions">
@@ -270,83 +224,44 @@ function SettingsContent() {
           </div>
         </Card>
 
-        <Card className="space-y-3 p-4">
-          <h2 className="text-lg font-medium">締め日</h2>
-          <div className="flex items-center gap-3">
-            <Select className="w-24" value={closingDay} onChange={(v) => setClosingDay(v)}>
-              {days.map((d) => (
-                <option key={d} value={d}>
-                  {d}日
-                </option>
-              ))}
-            </Select>
-            <Button onClick={onSaveClosingDay}>保存</Button>
+        <Card className="space-y-4 p-4 md:p-6">
+          <div>
+            <h2 className="text-lg font-medium">カテゴリ設定</h2>
+            <p className="text-sm text-muted-foreground">カテゴリの追加や名称変更は専用ページでまとめて行えます。</p>
           </div>
-          <p className="text-xs text-muted-foreground">※ Householdの締め日APIは別タスクで実装予定</p>
+          <div>
+            <Link href="/settings/categories">
+              <Button variant="secondary" className="h-9">
+                カテゴリ管理ページを開く
+              </Button>
+            </Link>
+          </div>
         </Card>
 
-        <section className="grid gap-6 md:grid-cols-2">
-          <Card className="space-y-4 p-4">
-            <h2 className="text-lg font-medium">カテゴリ（マスター）</h2>
-            <div className="flex gap-2">
-              <Input placeholder="カテゴリ名" value={catName} onChange={(e) => setCatName(e.target.value)} />
-              <Select className="w-32" value={catType} onChange={(v) => setCatType(v as "income" | "expense")}>
-                <option value="expense">支出</option>
-                <option value="income">収入</option>
-              </Select>
-              <Button onClick={createCategory}>追加</Button>
-            </div>
-            <div className="space-y-2">
-              {loadingMasters ? (
-                <p className="text-sm text-muted-foreground">読み込み中...</p>
-              ) : categories.length === 0 ? (
-                <p className="text-sm text-muted-foreground">カテゴリがありません</p>
-              ) : (
-                categories
-                  .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-                  .map((c) => (
-                    <div key={c.id} className="flex items-center gap-2">
-                      <Input defaultValue={c.name} onBlur={(e) => updateCategoryName(c.id, e.target.value)} />
-                      <span className="w-16 text-right text-xs text-muted-foreground">
-                        {c.type === "expense" ? "支出" : "収入"}
-                      </span>
-                    </div>
-                  ))
-              )}
-            </div>
-          </Card>
+        <Card className="space-y-4 p-4 md:p-6">
+          <div>
+            <h2 className="text-lg font-medium">アカウント設定</h2>
+            <p className="text-sm text-muted-foreground">財布や口座の追加・編集は専用ページからまとめて行えます。</p>
+          </div>
+          <div>
+            <Link href="/settings/accounts">
+              <Button variant="secondary" className="h-9">
+                アカウント管理ページを開く
+              </Button>
+            </Link>
+          </div>
+        </Card>
 
-          <Card className="space-y-4 p-4">
-            <h2 className="text-lg font-medium">アカウント（マスター）</h2>
-            <div className="flex gap-2">
-              <Input placeholder="アカウント名" value={accName} onChange={(e) => setAccName(e.target.value)} />
-              <Button onClick={createAccount}>追加</Button>
-            </div>
-            <div className="space-y-2">
-              {loadingMasters ? (
-                <p className="text-sm text-muted-foreground">読み込み中...</p>
-              ) : accounts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">アカウントがありません</p>
-              ) : (
-                accounts
-                  .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-                  .map((a) => (
-                    <div key={a.id} className="flex items-center gap-2">
-                      <Input defaultValue={a.name} onBlur={(e) => updateAccountName(a.id, e.target.value)} />
-                    </div>
-                  ))
-              )}
-            </div>
-          </Card>
-        </section>
-
-        <Card className="space-y-3 p-4">
-          <h2 className="text-lg font-medium">招待コード</h2>
-          <div className="flex items-center gap-2">
+        <Card className="space-y-4 p-4 md:p-6">
+          <div>
+            <h2 className="text-lg font-medium">招待コード</h2>
+            <p className="text-sm text-muted-foreground">家族やメンバーを招待するときに利用してください。</p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button onClick={createInvite} disabled={loadingInvite}>
               {loadingInvite ? "発行中..." : "招待コードを発行"}
             </Button>
-            {inviteToken && <Input readOnly value={inviteToken} />}
+            {inviteToken && <Input readOnly value={inviteToken} className="sm:w-64" />}
             {inviteToken && (
               <Button variant="secondary" onClick={copyInvite}>
                 コピー
@@ -356,8 +271,11 @@ function SettingsContent() {
           <p className="text-xs text-muted-foreground">発行済みコードは一定時間で無効になります。</p>
         </Card>
 
-        <Card className="space-y-3 p-4">
-          <h2 className="text-lg font-medium">メンバー承認</h2>
+        <Card className="space-y-4 p-4 md:p-6">
+          <div>
+            <h2 className="text-lg font-medium">メンバー承認</h2>
+            <p className="text-sm text-muted-foreground">参加申請中のメンバーを承認または取り消しできます。</p>
+          </div>
           {memberError && (
             <p className="text-sm text-red-600" role="alert">
               {memberError}
@@ -390,6 +308,16 @@ function SettingsContent() {
             </div>
           )}
           <p className="text-xs text-muted-foreground">オーナーのみ操作できます。</p>
+        </Card>
+
+        <Card className="space-y-4 p-4 md:p-6">
+          <div>
+            <h2 className="text-lg font-medium">アカウント操作</h2>
+            <p className="text-sm text-muted-foreground">別のアカウントを利用する場合はログアウトしてください。</p>
+          </div>
+          <Button variant="secondary" onClick={handleSignOut} disabled={signingOut}>
+            {signingOut ? "ログアウト中..." : "ログアウト"}
+          </Button>
         </Card>
       </div>
     </main>

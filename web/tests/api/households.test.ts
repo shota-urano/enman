@@ -67,14 +67,14 @@ describe('POST /api/households', () => {
     const session: Session = { userId: 'u-1', token: 't' }
     getSession.mockResolvedValue(session)
 
-    const hh: Household = { id: 'h-1', name: 'Home' }
+    const hh: Household = { id: 'h-1', name: 'Home', closing_day: 31 }
     householdsRepository.create.mockResolvedValue(hh)
 
     const req = makeReq({ name: 'Home' })
     const res = await route.POST(req)
     expect(res.status).toBe(201)
     const json = await res.json()
-    expect(json).toEqual({ id: 'h-1', name: 'Home' })
+    expect(json).toEqual({ id: 'h-1', name: 'Home', closing_day: 31 })
     expect(householdsRepository.create).toHaveBeenCalledWith('u-1', 'Home')
   })
 })

@@ -11,6 +11,11 @@ export type HouseholdMember = {
 export type Household = {
   id: string
   name: string
+  closing_day: number
+}
+
+export type HouseholdSettings = {
+  closing_day: number
 }
 
 export const householdsRepository = {
@@ -19,7 +24,7 @@ export const householdsRepository = {
     const { data: hh, error: hErr } = await supabase
       .from('households')
       .insert({ name })
-      .select('id, name')
+      .select('id, name, closing_day')
       .single()
     if (hErr) throw hErr
     if (!hh) throw new Error('世帯の作成に失敗しました')
@@ -94,6 +99,31 @@ export const householdsRepository = {
       .single()
     if (error) throw error
     return (data?.role as string) === 'owner'
+  },
+
+  async getSettings(householdId: string): Promise<HouseholdSettings> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('households')
+      .select('closing_day')
+      .eq('id', householdId)
+      .single()
+    if (error) throw error
+    if (!data) throw new Error('世帯情報が見つかりません')
+    return data as HouseholdSettings
+  },
+
+  async updateClosingDay(householdId: string, closingDay: number): Promise<HouseholdSettings> {
+    const supabase = createSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('households')
+      .update({ closing_day: closingDay })
+      .eq('id', householdId)
+      .select('closing_day')
+      .single()
+    if (error) throw error
+    if (!data) throw new Error('締め日の更新に失敗しました')
+    return data as HouseholdSettings
   },
 }
 
