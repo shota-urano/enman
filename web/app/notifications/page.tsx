@@ -1,11 +1,11 @@
 "use client";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import RequireAuth from "@/components/auth/RequireAuth";
 import AppHeader from "@/components/AppHeader";
 import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, MessageCircle, Heart, Inbox } from "lucide-react";
+import { Bell, MessageCircle, Heart, Inbox, Stamp, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -718,11 +718,14 @@ function CommentDetailDialog(props: {
   }, [reactions]);
   const chipButtonClass =
     "h-8 rounded-full bg-white/80 px-3 text-xs font-medium text-foreground shadow-neumorphic-soft transition-all hover:shadow-neumorphic-hover";
+  const pickerTriggerButtonClass =
+    "h-8 w-8 rounded-full bg-white/80 p-0 text-foreground shadow-neumorphic-soft transition-all hover:shadow-neumorphic-hover";
   const canSubmit = commentValue.trim().length > 0 && !commentBusy && !loading;
   const [customEmojiActive, setCustomEmojiActive] = useState(false);
   const [customEmojiValue, setCustomEmojiValue] = useState("");
   const [customEmojiError, setCustomEmojiError] = useState<string | null>(null);
   const [customEmojiBusy, setCustomEmojiBusy] = useState(false);
+  const pickerAnchorRef = useRef<HTMLDivElement | null>(null);
   const trimmedCustomEmoji = customEmojiValue.trim();
   const canSubmitCustomEmoji = trimmedCustomEmoji.length > 0 && !customEmojiBusy && !loading;
   const presetSet = useMemo(() => new Set<string>(REACTION_PRESETS), []);
@@ -736,12 +739,34 @@ function CommentDetailDialog(props: {
     : DEFAULT_PROFILE_NAME;
   const creatorAvatar = tx?.creator?.avatar_url ?? null;
 
-  const closeCustomEmoji = () => {
+  const openCustomEmoji = useCallback(() => {
+    setCustomEmojiActive(true);
+    setCustomEmojiValue('');
+    setCustomEmojiError(null);
+    setCustomEmojiBusy(false);
+  }, []);
+
+  const closeCustomEmoji = useCallback(() => {
     setCustomEmojiActive(false);
     setCustomEmojiValue('');
     setCustomEmojiError(null);
     setCustomEmojiBusy(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!customEmojiActive) return;
+    const handleOutside = (event: MouseEvent | TouchEvent) => {
+      if (!pickerAnchorRef.current) return;
+      if (pickerAnchorRef.current.contains(event.target as Node)) return;
+      closeCustomEmoji();
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('touchstart', handleOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside);
+    };
+  }, [customEmojiActive, closeCustomEmoji]);
 
   const submitCustomEmoji = async (valueOverride?: string) => {
     const rawValue = valueOverride ?? customEmojiValue;
@@ -759,6 +784,23 @@ function CommentDetailDialog(props: {
     let ok = false;
     try {
       ok = await props.onToggleReaction(value);
+    } finally {
+      setCustomEmojiBusy(false);
+    }
+    if (ok) {
+      closeCustomEmoji();
+    } else {
+      setCustomEmojiError('リアクションの更新に失敗しました');
+    }
+  };
+
+  const handlePresetReaction = async (emoji: string) => {
+    if (loading || customEmojiBusy) return;
+    setCustomEmojiError(null);
+    setCustomEmojiBusy(true);
+    let ok = false;
+    try {
+      ok = await props.onToggleReaction(emoji);
     } finally {
       setCustomEmojiBusy(false);
     }
@@ -829,109 +871,117 @@ function CommentDetailDialog(props: {
                 ) : (
                   <span className="text-xs text-muted-foreground">なし</span>
                 )}
-                <div className="ml-auto flex gap-1">
-                  {REACTION_PRESETS.map((emoji) => (
-                    <Button
-                      key={emoji}
-                      size="sm"
-                      variant="ghost"
-                      className={chipButtonClass}
-                      disabled={loading || customEmojiBusy}
-                      onClick={() => {
-                        void props.onToggleReaction(emoji);
-                      }}
-                    >
-                      {emoji}
-                    </Button>
-                  ))}
+                <div className="ml-auto relative" ref={pickerAnchorRef}>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className={chipButtonClass}
-                    disabled={loading || customEmojiBusy}
+                    className={pickerTriggerButtonClass}
+                    disabled={loading}
+                    aria-label="リアクション一覧を開く"
                     onClick={() => {
                       if (customEmojiActive) closeCustomEmoji();
-                      else {
-                        setCustomEmojiActive(true);
-                        setCustomEmojiValue('');
-                        setCustomEmojiError(null);
-                      }
+                      else openCustomEmoji();
                     }}
-                    aria-label="他の絵文字でリアクション"
                   >
-                    ＋
+                    <Stamp className="h-4 w-4" />
                   </Button>
-                </div>
-              </div>
-
-              {customEmojiActive && (
-                <div className="mt-2 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Input
-                      value={customEmojiValue}
-                      onChange={(e) => {
-                        setCustomEmojiValue(e.target.value);
-                        if (customEmojiError) setCustomEmojiError(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && canSubmitCustomEmoji) {
-                          e.preventDefault();
-                          void submitCustomEmoji();
-                        }
-                      }}
-                      disabled={customEmojiBusy || loading}
-                      placeholder="例: 👇"
-                      className="h-9 w-24"
-                      inputMode="text"
-                    />
-                    <Button
-                      size="sm"
-                      className="px-4"
-                      disabled={!canSubmitCustomEmoji}
-                      onClick={() => {
-                        void submitCustomEmoji();
-                      }}
-                    >
-                      追加
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={customEmojiBusy}
-                      onClick={closeCustomEmoji}
-                    >
-                      キャンセル
-                    </Button>
-                  </div>
-                  {customEmojiError && (
-                    <div className="text-xs text-[color:var(--destructive)]">{customEmojiError}</div>
-                  )}
-                  <div className="text-xs text-muted-foreground">
-                    {`スマホの絵文字キーボードから好きな絵文字を入力できます（最大${MAX_CUSTOM_REACTION_LENGTH}文字）。`}
-                  </div>
-                  {suggestionOptions.length > 0 && (
-                    <div className="pt-1">
-                      <div className="text-xs text-muted-foreground mb-1">おすすめの絵文字</div>
-                      <div className="flex flex-wrap gap-1">
-                        {suggestionOptions.map((emoji) => (
-                          <Button
-                            key={emoji}
-                            size="sm"
-                            variant="ghost"
-                            className={chipButtonClass}
-                            disabled={customEmojiBusy || loading}
-                            onClick={() => {
-                              void submitCustomEmoji(emoji);
-                            }}
-                          >
-                            {emoji}
-                          </Button>
-                        ))}
+                  {customEmojiActive && (
+                    <div className="absolute right-0 z-30 mt-2 w-[min(92vw,320px)] rounded-[28px] border border-white/60 bg-white p-4 shadow-neumorphic-soft">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold">リアクションを選択</span>
+                        <button
+                          type="button"
+                          onClick={closeCustomEmoji}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/70 text-muted-foreground hover:bg-white"
+                          aria-label="閉じる"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="space-y-4 text-left">
+                        <div>
+                          <div className="mb-2 text-xs text-muted-foreground">よく使うリアクション</div>
+                          <div className="flex flex-wrap gap-2">
+                            {REACTION_PRESETS.map((emoji) => (
+                              <Button
+                                key={emoji}
+                                size="sm"
+                                variant="ghost"
+                                className={cn(chipButtonClass, "px-4 text-base")}
+                                disabled={loading || customEmojiBusy}
+                                onClick={() => {
+                                  void handlePresetReaction(emoji);
+                                }}
+                              >
+                                {emoji}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        {suggestionOptions.length > 0 && (
+                          <div>
+                            <div className="mb-2 text-xs text-muted-foreground">おすすめ</div>
+                            <div className="flex flex-wrap gap-2">
+                              {suggestionOptions.map((emoji) => (
+                                <Button
+                                  key={emoji}
+                                  size="sm"
+                                  variant="ghost"
+                                  className={cn(chipButtonClass, "px-4 text-base")}
+                                  disabled={loading || customEmojiBusy}
+                                  onClick={() => {
+                                    void submitCustomEmoji(emoji);
+                                  }}
+                                >
+                                  {emoji}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          <div className="text-xs text-muted-foreground">好きな絵文字を登録</div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Input
+                              value={customEmojiValue}
+                              onChange={(e) => {
+                                setCustomEmojiValue(e.target.value);
+                                if (customEmojiError) setCustomEmojiError(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && canSubmitCustomEmoji) {
+                                  e.preventDefault();
+                                  void submitCustomEmoji();
+                                }
+                              }}
+                              disabled={customEmojiBusy || loading}
+                              placeholder="例: 👇"
+                              className="h-9 w-24"
+                              inputMode="text"
+                            />
+                            <Button
+                              size="sm"
+                              className="px-4"
+                              disabled={!canSubmitCustomEmoji}
+                              onClick={() => {
+                                void submitCustomEmoji();
+                              }}
+                            >
+                              追加
+                            </Button>
+                          </div>
+                          {customEmojiError && (
+                            <div className="text-xs text-[color:var(--destructive)]">{customEmojiError}</div>
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            {`スマホの絵文字キーボードから好きな絵文字を入力できます（最大${MAX_CUSTOM_REACTION_LENGTH}文字）。`}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
-              )}
+              </div>
 
               <div className="mt-3">
                 <div className="text-xs font-medium mb-1">コメント</div>

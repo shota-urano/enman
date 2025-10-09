@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import RequireAuth from "@/components/auth/RequireAuth";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import TransactionEditDialog from "@/components/TransactionEditDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import UserAvatar from "@/components/UserAvatar";
 import { DEFAULT_PROFILE_NAME } from "@/lib/profile";
+import { Stamp, X } from "lucide-react";
 
 type DailyTotalsItem = {
   date: string; // YYYY-MM-DD
@@ -138,6 +139,8 @@ function CalendarScreen() {
   const [customReactionInput, setCustomReactionInput] = useState("");
   const [customReactionError, setCustomReactionError] = useState<string | null>(null);
   const [customReactionPending, setCustomReactionPending] = useState(false);
+  const pickerAnchors = useRef<Record<string, HTMLDivElement | null>>({});
+  const [activePickerElement, setActivePickerElement] = useState<HTMLDivElement | null>(null);
 
   const { show } = useToast();
 
@@ -422,19 +425,44 @@ function CalendarScreen() {
     }
   }
 
-  function openCustomReaction(txId: string) {
+  const openCustomReaction = useCallback((txId: string) => {
     setCustomReactionTarget(txId);
     setCustomReactionInput('');
     setCustomReactionError(null);
     setCustomReactionPending(false);
-  }
+    setActivePickerElement(pickerAnchors.current[txId] ?? null);
+  }, [pickerAnchors]);
 
-  function closeCustomReaction() {
+  const closeCustomReaction = useCallback(() => {
     setCustomReactionTarget(null);
     setCustomReactionInput('');
     setCustomReactionError(null);
     setCustomReactionPending(false);
-  }
+    setActivePickerElement(null);
+  }, []);
+
+  useEffect(() => {
+    if (!customReactionTarget) {
+      setActivePickerElement(null);
+      return;
+    }
+    setActivePickerElement(pickerAnchors.current[customReactionTarget] ?? null);
+  }, [customReactionTarget]);
+
+  useEffect(() => {
+    if (!customReactionTarget) return;
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (!activePickerElement) return;
+      if (activePickerElement.contains(event.target as Node)) return;
+      closeCustomReaction();
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [customReactionTarget, activePickerElement, closeCustomReaction]);
 
   async function submitCustomReaction(txId: string, explicitValue?: string) {
     if (customReactionTarget !== txId) return;
@@ -463,10 +491,6 @@ function CalendarScreen() {
     }
   }
 
-  async function handleSuggestionReaction(txId: string, emoji: string) {
-    await submitCustomReaction(txId, emoji);
-  }
-
   const monthTitle = `${currentMonth.getFullYear()}年 ${currentMonth.getMonth() + 1}月`;
   const deleteDescription = useMemo(() => {
     if (!deleteTarget) return undefined;
@@ -478,6 +502,8 @@ function CalendarScreen() {
     "h-10 w-10 rounded-full p-0 text-base font-semibold shadow-neumorphic-soft hover:shadow-neumorphic-hover";
   const chipButtonClass =
     "h-8 rounded-full bg-white/80 px-3 text-xs font-medium text-foreground shadow-neumorphic-soft transition-all hover:shadow-neumorphic-hover";
+  const pickerTriggerButtonClass =
+    "h-8 w-8 rounded-full bg-white/80 p-0 text-foreground shadow-neumorphic-soft transition-all hover:shadow-neumorphic-hover";
   const customReactionInputTrimmed = customReactionInput.trim();
   const canSubmitCustomReaction = customReactionInputTrimmed.length > 0 && !customReactionPending;
   const presetSet = useMemo(() => new Set<string>(REACTION_PRESETS), []);
@@ -723,24 +749,27 @@ function CalendarScreen() {
                     {(groupReactions(reactionsMap[tx.id] ?? [])).map((r) => (
                       <span key={r.emoji} className="text-sm">{r.emoji} {r.count}</span>
                     ))}
-                    <div className="ml-auto flex gap-1">
-                      {REACTION_PRESETS.map((e) => (
-                        <Button
-                          key={e}
-                          size="sm"
-                          variant="ghost"
-                          className={cn(chipButtonClass, "px-3")}
-                          onClick={() => {
-                            void toggleReaction(tx.id, e);
-                          }}
-                        >
-                          {e}
-                        </Button>
-                      ))}
+                    <div
+                      className="ml-auto relative"
+                      ref={(el) => {
+                        if (el) {
+                          pickerAnchors.current[tx.id] = el;
+                          if (customReactionTarget === tx.id) {
+                            setActivePickerElement(el);
+                          }
+                        } else {
+                          delete pickerAnchors.current[tx.id];
+                          if (customReactionTarget === tx.id) {
+                            setActivePickerElement(null);
+                          }
+                        }
+                      }}
+                    >
                       <Button
                         size="sm"
                         variant="ghost"
-                        className={cn(chipButtonClass, "px-3")}
+                        className={pickerTriggerButtonClass}
+                        aria-label="リアクション一覧を開く"
                         onClick={() => {
                           if (customReactionTarget === tx.id) {
                             closeCustomReaction();
@@ -748,81 +777,115 @@ function CalendarScreen() {
                             openCustomReaction(tx.id);
                           }
                         }}
-                        aria-label="他の絵文字でリアクション"
                       >
-                        ＋
+                        <Stamp className="h-4 w-4" />
                       </Button>
-                    </div>
-                  </div>
-
-                  {customReactionTarget === tx.id && (
-                    <div className="mt-2 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Input
-                          value={customReactionInput}
-                          onChange={(e) => {
-                            setCustomReactionInput(e.target.value);
-                            if (customReactionError) setCustomReactionError(null);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && canSubmitCustomReaction) {
-                              e.preventDefault();
-                              void submitCustomReaction(tx.id);
-                            }
-                          }}
-                          disabled={customReactionPending}
-                          placeholder="例: 👇"
-                          className="h-9 w-24"
-                          inputMode="text"
-                        />
-                        <Button
-                          size="sm"
-                          className="px-4"
-                          disabled={!canSubmitCustomReaction}
-                          onClick={() => {
-                            void submitCustomReaction(tx.id);
-                          }}
-                        >
-                          追加
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          disabled={customReactionPending}
-                          onClick={closeCustomReaction}
-                        >
-                          キャンセル
-                        </Button>
-                      </div>
-                      {customReactionError && (
-                        <div className="text-xs text-[color:var(--destructive)]">{customReactionError}</div>
-                      )}
-                      <div className="text-xs text-muted-foreground">
-                        {`スマホの絵文字キーボードから好きな絵文字を入力できます（最大${MAX_CUSTOM_REACTION_LENGTH}文字）。`}
-                      </div>
-                      {suggestionOptions.length > 0 && (
-                        <div className="pt-1">
-                          <div className="text-xs text-muted-foreground mb-1">おすすめの絵文字</div>
-                          <div className="flex flex-wrap gap-1">
-                            {suggestionOptions.map((emoji) => (
-                              <Button
-                                key={emoji}
-                                size="sm"
-                                variant="ghost"
-                                className={cn(chipButtonClass, "px-3")}
-                                disabled={customReactionPending}
-                                onClick={() => {
-                                  void handleSuggestionReaction(tx.id, emoji);
-                                }}
-                              >
-                                {emoji}
-                              </Button>
-                            ))}
+                      {customReactionTarget === tx.id && (
+                        <div className="absolute right-0 z-30 mt-2 w-[min(92vw,320px)] rounded-[28px] border border-white/60 bg-white p-4 shadow-neumorphic-soft">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <span className="text-sm font-semibold">リアクションを選択</span>
+                            <button
+                              type="button"
+                              onClick={closeCustomReaction}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/70 text-muted-foreground hover:bg-white"
+                              aria-label="閉じる"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <div className="space-y-4 text-left">
+                            <div>
+                              <div className="mb-2 text-xs text-muted-foreground">よく使うリアクション</div>
+                              <div className="flex flex-wrap gap-2">
+                                {REACTION_PRESETS.map((emoji) => (
+                                  <Button
+                                    key={emoji}
+                                    size="sm"
+                                    variant="ghost"
+                                    className={cn(chipButtonClass, "px-4 text-base")}
+                                    disabled={customReactionPending}
+                                    onClick={() => {
+                                      if (customReactionPending) return;
+                                      setCustomReactionPending(true);
+                                      void (async () => {
+                                        try {
+                                          const ok = await toggleReaction(tx.id, emoji);
+                                          if (ok) closeCustomReaction();
+                                        } finally {
+                                          setCustomReactionPending(false);
+                                        }
+                                      })();
+                                    }}
+                                  >
+                                    {emoji}
+                                  </Button>
+                                ))}
+                              </div>
+                            </div>
+                            {suggestionOptions.length > 0 && (
+                              <div>
+                                <div className="mb-2 text-xs text-muted-foreground">おすすめ</div>
+                                <div className="flex flex-wrap gap-2">
+                                  {suggestionOptions.map((emoji) => (
+                                    <Button
+                                      key={emoji}
+                                      size="sm"
+                                      variant="ghost"
+                                      className={cn(chipButtonClass, "px-4 text-base")}
+                                      disabled={customReactionPending}
+                                      onClick={() => {
+                                        void submitCustomReaction(tx.id, emoji);
+                                      }}
+                                    >
+                                      {emoji}
+                                    </Button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            <div className="space-y-2">
+                              <div className="text-xs text-muted-foreground">好きな絵文字を登録</div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Input
+                                  value={customReactionInput}
+                                  onChange={(e) => {
+                                    setCustomReactionInput(e.target.value);
+                                    if (customReactionError) setCustomReactionError(null);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && canSubmitCustomReaction) {
+                                      e.preventDefault();
+                                      void submitCustomReaction(tx.id);
+                                    }
+                                  }}
+                                  disabled={customReactionPending}
+                                  placeholder="例: 👇"
+                                  className="h-9 w-24"
+                                  inputMode="text"
+                                />
+                                <Button
+                                  size="sm"
+                                  className="px-4"
+                                  disabled={!canSubmitCustomReaction}
+                                  onClick={() => {
+                                    void submitCustomReaction(tx.id);
+                                  }}
+                                >
+                                  追加
+                                </Button>
+                              </div>
+                              {customReactionError && (
+                                <div className="text-xs text-[color:var(--destructive)]">{customReactionError}</div>
+                              )}
+                              <div className="text-xs text-muted-foreground">
+                                {`スマホの絵文字キーボードから好きな絵文字を入力できます（最大${MAX_CUSTOM_REACTION_LENGTH}文字）。`}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
                     </div>
-                  )}
+                  </div>
 
                  {/* Comments */}
                   <div className="mt-3">
