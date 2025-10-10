@@ -211,14 +211,15 @@ export default function MemoryMapView() {
 
   // Initialise map
   useEffect(() => {
-    if (!ready || mapRef.current || !mapContainerRef.current) return
+    const container = mapContainerRef.current
+    if (!ready || mapRef.current || !container) return
     let canceled = false
 
     loadGoogleMaps()
       .then((maps) => {
         if (canceled) return
         mapsRef.current = maps
-        const map = new maps.Map(mapContainerRef.current, {
+        const map = new maps.Map(container, {
           center: DEFAULT_CENTER,
           zoom: 5,
           mapTypeControl: false,
