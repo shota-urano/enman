@@ -14,14 +14,66 @@ export type Transaction = {
   created_by: string
 }
 
+export type TransactionPlace = {
+  place_id: string
+  name: string
+  formatted_address: string | null
+  lat: number
+  lng: number
+}
+
 export type TransactionWithPlace = Transaction & {
-  places?: {
-    place_id: string
-    name: string
-    formatted_address: string | null
-    lat: number
-    lng: number
-  } | null
+  places?: TransactionPlace | null
+}
+
+type RawTransactionRow = Transaction & {
+  places?: unknown
+}
+
+type RawPlaceRow = {
+  place_id?: unknown
+  name?: unknown
+  formatted_address?: unknown
+  lat?: unknown
+  lng?: unknown
+}
+
+function isPlaceRow(value: unknown): value is TransactionPlace {
+  if (!value || typeof value !== 'object') return false
+  const row = value as RawPlaceRow
+  return (
+    typeof row.place_id === 'string' &&
+    typeof row.name === 'string' &&
+    (typeof row.formatted_address === 'string' || row.formatted_address === null || row.formatted_address === undefined) &&
+    typeof row.lat === 'number' &&
+    typeof row.lng === 'number'
+  )
+}
+
+function normalizePlaceField(field: unknown): TransactionPlace | null {
+  if (!field) return null
+  if (Array.isArray(field)) {
+    for (const candidate of field) {
+      if (isPlaceRow(candidate)) {
+        return candidate
+      }
+    }
+    return null
+  }
+  if (isPlaceRow(field)) {
+    return field
+  }
+  return null
+}
+
+function normalizeRow(row: unknown): TransactionWithPlace {
+  const tx = row as RawTransactionRow
+  const { places, ...rest } = tx
+  const place = normalizePlaceField(places)
+  return {
+    ...(rest as Transaction),
+    places: place,
+  }
 }
 
 export const transactionsRepository = {
@@ -42,7 +94,7 @@ export const transactionsRepository = {
 
     if (error) throw error
     if (!data) throw new Error('取引が見つかりません')
-    return data as TransactionWithPlace
+    return normalizeRow(data)
   },
   async remove(
     householdId: string,
@@ -212,6 +264,6 @@ export const transactionsRepository = {
 
     const { data, error } = await query
     if (error) throw error
-    return (data ?? []) as TransactionWithPlace[]
+    return (data ?? []).map((row) => normalizeRow(row))
   },
 }
