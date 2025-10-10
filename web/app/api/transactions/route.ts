@@ -114,17 +114,18 @@ export async function POST(req: NextRequest) {
       throw badRequest(message, parsed.error)
     }
 
+    const { place_session_token, ...restInput } = parsed.data
+
     let placeRecord: Awaited<ReturnType<typeof ensurePlaceRecord>> | null = null
-    if (parsed.data.place_id) {
-      placeRecord = await ensurePlaceRecord(parsed.data.place_id, parsed.data.place_session_token)
+    if (restInput.place_id) {
+      placeRecord = await ensurePlaceRecord(restInput.place_id, place_session_token)
     }
 
-    const memoryFlag = parsed.data.memory_flag === true && placeRecord ? true : false
-    const placeLabel = parsed.data.place ?? placeRecord?.name ?? null
+    const memoryFlag = restInput.memory_flag === true && placeRecord ? true : false
+    const placeLabel = restInput.place ?? placeRecord?.name ?? null
 
-    const { place_session_token: _token, ...rest } = parsed.data
     const payload: TxCreateInput = {
-      ...rest,
+      ...restInput,
       place: placeLabel ?? undefined,
       place_id: placeRecord?.place_id,
       memory_flag: memoryFlag,

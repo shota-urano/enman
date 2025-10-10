@@ -1,7 +1,14 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { loadGoogleMaps } from "@/lib/googleMapsLoader"
+import {
+  loadGoogleMaps,
+  type GoogleInfoWindow,
+  type GoogleMap,
+  type GoogleMarker,
+  type GoogleMapsApi,
+  type GoogleMapsEventListener,
+} from "@/lib/googleMapsLoader"
 import { Card, CardBody, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,11 +38,11 @@ const DEFAULT_CENTER = { lat: 35.6809591, lng: 139.7673068 } // 東京駅付近
 export default function MemoryMapView() {
   const sectionRef = useRef<HTMLDivElement | null>(null)
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<any>(null)
-  const mapsRef = useRef<any>(null)
-  const markersRef = useRef<Map<string, any>>(new Map())
-  const infoWindowRef = useRef<any | null>(null)
-  const idleListenerRef = useRef<any | null>(null)
+  const mapRef = useRef<GoogleMap | null>(null)
+  const mapsRef = useRef<GoogleMapsApi | null>(null)
+  const markersRef = useRef<Map<string, GoogleMarker>>(new Map())
+  const infoWindowRef = useRef<GoogleInfoWindow | null>(null)
+  const idleListenerRef = useRef<GoogleMapsEventListener | null>(null)
   const fetchTimeoutRef = useRef<number | null>(null)
   const lastQueryRef = useRef<string | null>(null)
   const hasFitRef = useRef(false)
@@ -63,7 +70,7 @@ export default function MemoryMapView() {
     return () => observer.disconnect()
   }, [])
 
-  const buildInfoContent = useCallback((maps: any, point: MemoryPoint) => {
+  const buildInfoContent = useCallback((point: MemoryPoint) => {
     const container = document.createElement("div")
     container.style.maxWidth = "220px"
 
@@ -103,19 +110,18 @@ export default function MemoryMapView() {
   const showInfoWindow = useCallback(
     (point: MemoryPoint) => {
       const map = mapRef.current
-      const maps = mapsRef.current
       const infoWindow = infoWindowRef.current
-      if (!map || !maps || !infoWindow) return
+      if (!map || !infoWindow) return
       const marker = markersRef.current.get(point.id)
       if (!marker) return
-      infoWindow.setContent(buildInfoContent(maps, point))
+      infoWindow.setContent(buildInfoContent(point))
       infoWindow.open(map, marker)
     },
     [buildInfoContent],
   )
 
   const updateMarkers = useCallback(
-    (maps: any, map: any, list: MemoryPoint[]) => {
+    (maps: GoogleMapsApi, map: GoogleMap, list: MemoryPoint[]) => {
       const markers = markersRef.current
       const incomingIds = new Set(list.map((p) => p.id))
 
@@ -236,6 +242,7 @@ export default function MemoryMapView() {
   }, [fetchData, ready, scheduleFetch])
 
   useEffect(() => {
+    const markers = markersRef.current
     return () => {
       if (idleListenerRef.current) {
         idleListenerRef.current.remove()
@@ -244,8 +251,11 @@ export default function MemoryMapView() {
       if (fetchTimeoutRef.current) {
         window.clearTimeout(fetchTimeoutRef.current)
       }
-      markersRef.current.forEach((marker) => marker.setMap(null))
-      markersRef.current.clear()
+      infoWindowRef.current = null
+      mapRef.current = null
+      mapsRef.current = null
+      markers.forEach((marker) => marker.setMap(null))
+      markers.clear()
     }
   }, [])
 
@@ -373,4 +383,3 @@ export default function MemoryMapView() {
     </div>
   )
 }
-

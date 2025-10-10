@@ -1,15 +1,64 @@
 "use client"
 
-type GoogleMaps = any
+export type GoogleLatLngLiteral = { lat: number; lng: number }
 
-let loaderPromise: Promise<GoogleMaps> | null = null
+export type GoogleLatLngAccessor = { lat(): number; lng(): number }
 
-export async function loadGoogleMaps(): Promise<GoogleMaps> {
+export type GoogleLatLngBounds = {
+  extend(latLng: GoogleLatLngLiteral): void
+  getNorthEast(): GoogleLatLngAccessor
+  getSouthWest(): GoogleLatLngAccessor
+}
+
+export type GoogleMapsEventListener = { remove(): void }
+
+export type GoogleMapsEventNamespace = {
+  addListener(instance: unknown, eventName: string, handler: () => void): GoogleMapsEventListener
+  addListenerOnce(instance: unknown, eventName: string, handler: () => void): GoogleMapsEventListener
+}
+
+export type GoogleMap = {
+  getBounds(): GoogleLatLngBounds | null
+  fitBounds(bounds: GoogleLatLngBounds, padding?: number): void
+}
+
+export type GoogleMarker = {
+  setMap(map: GoogleMap | null): void
+  getMap(): GoogleMap | null
+  addListener(eventName: string, handler: () => void): GoogleMapsEventListener
+  set(property: string, value: unknown): void
+}
+
+export type GoogleInfoWindow = {
+  setContent(content: string | Node): void
+  open(map: GoogleMap, anchor?: GoogleMarker): void
+}
+
+export type GoogleMapsApi = {
+  Map: new (
+    element: HTMLElement,
+    options: {
+      center: GoogleLatLngLiteral
+      zoom: number
+      mapTypeControl?: boolean
+      streetViewControl?: boolean
+      fullscreenControl?: boolean
+    },
+  ) => GoogleMap
+  Marker: new (options: { map?: GoogleMap; position: GoogleLatLngLiteral; title?: string }) => GoogleMarker
+  InfoWindow: new (options?: { content?: string | Node }) => GoogleInfoWindow
+  LatLngBounds: new () => GoogleLatLngBounds
+  event: GoogleMapsEventNamespace
+}
+
+let loaderPromise: Promise<GoogleMapsApi> | null = null
+
+export async function loadGoogleMaps(): Promise<GoogleMapsApi> {
   if (typeof window === "undefined") {
     throw new Error("Google Maps はブラウザ環境でのみ利用できます")
   }
 
-  const anyWindow = window as typeof window & { google?: { maps?: GoogleMaps } }
+  const anyWindow = window as typeof window & { google?: { maps?: GoogleMapsApi } }
 
   if (anyWindow.google?.maps) {
     return anyWindow.google.maps
@@ -21,7 +70,7 @@ export async function loadGoogleMaps(): Promise<GoogleMaps> {
   }
 
   if (!loaderPromise) {
-    loaderPromise = new Promise<GoogleMaps>((resolve, reject) => {
+    loaderPromise = new Promise<GoogleMapsApi>((resolve, reject) => {
       const script = document.createElement("script")
       script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&v=weekly&libraries=maps,marker,places`
       script.async = true

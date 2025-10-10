@@ -133,32 +133,32 @@ export default function FeatureWalkthroughModal() {
         </div>
 
         <div className="mt-8 flex flex-nowrap items-center justify-end gap-2 overflow-x-auto">
-      <Button
-        type="button"
-        variant="secondary"
-        onClick={() => setStep((prev) => Math.max(prev - 1, 0))}
-        disabled={step === 0 || loading}
-        style={{ boxShadow: "none" }}
-        size="sm"
-      >
-        戻る
-      </Button>
-      <Button
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setStep((prev) => Math.max(prev - 1, 0))}
+            disabled={step === 0 || loading}
+            style={{ boxShadow: "none" }}
+            size="sm"
+          >
+            戻る
+          </Button>
+          <Button
             type="button"
             onClick={() => {
               if (step + 1 >= totalSteps) {
                 setDismissed(true)
                 void markCompleted(WALKTHROUGH_VERSION)
-        } else {
-          setStep((prev) => Math.min(prev + 1, totalSteps - 1))
-        }
-        }}
-        disabled={loading}
-        style={{ boxShadow: "none" }}
-        size="sm"
-      >
-        {step + 1 >= totalSteps ? (loading ? "保存中..." : "はじめる") : "次へ"}
-      </Button>
+              } else {
+                setStep((prev) => Math.min(prev + 1, totalSteps - 1))
+              }
+            }}
+            disabled={loading}
+            style={{ boxShadow: "none" }}
+            size="sm"
+          >
+            {step + 1 >= totalSteps ? (loading ? "保存中..." : "はじめる") : "次へ"}
+          </Button>
           <Button
             type="button"
             variant="ghost"
