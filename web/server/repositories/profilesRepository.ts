@@ -8,6 +8,7 @@ export type UserProfile = {
   display_name: string
   avatar_path: string | null
   avatar_url: string | null
+  latest_walkthrough_version: string | null
   created_at?: string
   updated_at?: string
 }
@@ -40,7 +41,7 @@ export const profilesRepository = {
     const supabase = createSupabaseAdmin()
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('user_id, display_name, avatar, created_at, updated_at')
+      .select('user_id, display_name, avatar, latest_walkthrough_version, created_at, updated_at')
       .eq('user_id', userId)
       .maybeSingle()
 
@@ -53,6 +54,7 @@ export const profilesRepository = {
       display_name: row.display_name ?? DEFAULT_NAME,
       avatar_path,
       avatar_url: toPublicUrl(avatar_path),
+      latest_walkthrough_version: row.latest_walkthrough_version ?? null,
       created_at: row.created_at,
       updated_at: row.updated_at,
     }
@@ -66,13 +68,15 @@ export const profilesRepository = {
 
   async upsert(
     userId: string,
-    input: { display_name?: string | null; avatar_path?: string | null },
+    input: { display_name?: string | null; avatar_path?: string | null; latest_walkthrough_version?: string | null },
   ): Promise<UserProfile> {
     const payload: Record<string, unknown> = { user_id: userId }
     const name = sanitizeName(input.display_name)
     const avatar = normalizeAvatarPath(input.avatar_path)
+    const walkthrough = input.latest_walkthrough_version ?? undefined
     if (name !== undefined) payload.display_name = name
     if (avatar !== undefined) payload.avatar = avatar
+    if (walkthrough !== undefined) payload.latest_walkthrough_version = walkthrough
 
     if (Object.keys(payload).length === 1) {
       // Nothing to update besides user_id, return current state to avoid wiping fields.
@@ -84,7 +88,7 @@ export const profilesRepository = {
     const { data, error } = await supabase
       .from('user_profiles')
       .upsert(payload, { onConflict: 'user_id' })
-      .select('user_id, display_name, avatar, created_at, updated_at')
+      .select('user_id, display_name, avatar, latest_walkthrough_version, created_at, updated_at')
       .single()
 
     if (error) throw error
@@ -113,6 +117,7 @@ export const profilesRepository = {
         display_name: profileRow.display_name ?? DEFAULT_NAME,
         avatar_path,
         avatar_url: toPublicUrl(avatar_path),
+        latest_walkthrough_version: null,
       }
     }
     return map

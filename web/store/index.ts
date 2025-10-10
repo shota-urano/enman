@@ -10,6 +10,8 @@ export type Transaction = {
   category_id: string
   account_id: string
   place?: string | null
+  place_id?: string | null
+  memory_flag: boolean
   memo?: string | null
   created_by: string
 }
@@ -58,7 +60,7 @@ export const useTx = create<TxState>()((set, get) => ({
     const data: Transaction[] = await res.json()
     set({ month: m, transactions: data })
   },
-  async createTx(input) {
+  async createTx(input: Omit<Transaction, 'id'> & { place_session_token?: string | null }) {
     const res = await fetch('/api/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -69,6 +71,9 @@ export const useTx = create<TxState>()((set, get) => ({
         category_id: input.category_id,
         account_id: input.account_id,
         place: input.place,
+        place_id: input.place_id || undefined,
+        place_session_token: input.place_session_token || undefined,
+        memory_flag: input.memory_flag ?? false,
         memo: input.memo,
       }),
     })

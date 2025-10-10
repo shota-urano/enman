@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { DatePicker } from "@/components/ui/date-picker"
 import ConfirmDialog from "@/components/ConfirmDialog"
+import PlaceSelector, { createEmptyPlaceValue, type PlaceSelectorValue } from "@/components/PlaceSelector"
 
 export type EditableTransaction = {
   id: string
@@ -16,6 +17,10 @@ export type EditableTransaction = {
   category_id?: string | null
   account_id?: string | null
   place?: string | null
+  place_id?: string | null
+  memory_flag?: boolean
+  place_name?: string | null
+  place_formatted_address?: string | null
   memo?: string | null
 }
 
@@ -47,7 +52,9 @@ type Draft = {
   amount: string
   category_id: string
   account_id: string
-  place: string
+  location: PlaceSelectorValue
+  placeText: string
+  memoryFlag: boolean
   memo: string
 }
 
@@ -57,7 +64,9 @@ const emptyDraft: Draft = {
   amount: "",
   category_id: "",
   account_id: "",
-  place: "",
+  location: createEmptyPlaceValue(),
+  placeText: "",
+  memoryFlag: false,
   memo: "",
 }
 
@@ -106,13 +115,27 @@ export default function TransactionEditDialog({
 
   useEffect(() => {
     if (!open || !transaction) return
+    const location = createEmptyPlaceValue()
+    let placeText = transaction.place ?? ""
+    const memoryFlag = transaction.memory_flag ?? false
+    if (memoryFlag && transaction.place_id) {
+      location.placeId = transaction.place_id
+      location.name =
+        transaction.place_name ??
+        transaction.place ??
+        ""
+      location.formattedAddress = transaction.place_formatted_address ?? ""
+      placeText = ""
+    }
     setDraft({
       kind: transaction.type,
       occurred_on: transaction.date,
       amount: String(transaction.amount),
       category_id: transaction.category_id ?? "",
       account_id: transaction.account_id ?? "",
-      place: transaction.place ?? "",
+      location,
+      placeText,
+      memoryFlag,
       memo: transaction.memo ?? "",
     })
     setError(null)
@@ -139,6 +162,7 @@ export default function TransactionEditDialog({
     if (!Number.isInteger(amountNumber) || amountNumber < 0) return "金額は0以上の整数を入力してください"
     if (!draft.category_id) return "カテゴリを選択してください"
     if (!draft.account_id) return "アカウントを選択してください"
+    if (draft.memoryFlag && !draft.location.placeId) return "思い出マップに登録する場合は場所を選択してください"
     return null
   }
 
@@ -162,18 +186,47 @@ export default function TransactionEditDialog({
     }
     setSubmitting(true)
     try {
+      const previousPlaceId = transaction.place_id ?? null
+      const nextPlaceId = draft.location.placeId ?? null
+      const updates: Record<string, unknown> = {
+        kind: draft.kind,
+        occurred_on: draft.occurred_on,
+        amount: Number(draft.amount),
+        category_id: draft.category_id,
+        account_id: draft.account_id,
+        memo: draft.memo ? draft.memo : null,
+      }
+
+      if (draft.memoryFlag) {
+        const placeName = draft.location.name.trim()
+        updates.place = placeName ? placeName : null
+        updates.memory_flag = true
+
+        if (nextPlaceId !== previousPlaceId) {
+          updates.place_id = nextPlaceId
+          if (nextPlaceId && draft.location.sessionToken) {
+            updates.place_session_token = draft.location.sessionToken
+          }
+        } else if (!previousPlaceId && nextPlaceId) {
+          updates.place_id = nextPlaceId
+        }
+      } else {
+        const placeText = draft.placeText.trim()
+        updates.place = placeText ? placeText : null
+        updates.memory_flag = false
+        if (previousPlaceId) {
+          updates.place_id = null
+        }
+      }
+
+      const payload = Object.fromEntries(
+        Object.entries(updates).filter(([, value]) => value !== undefined),
+      )
+
       const res = await fetch(`/api/transactions/${transaction.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: draft.kind,
-          occurred_on: draft.occurred_on,
-          amount: Number(draft.amount),
-          category_id: draft.category_id,
-          account_id: draft.account_id,
-          place: draft.place || undefined,
-          memo: draft.memo || undefined,
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const payload = await res.json().catch(() => null)
@@ -298,13 +351,59 @@ export default function TransactionEditDialog({
                   ]}
                 />
               </div>
-              <div className="flex flex-col gap-2 sm:col-span-2">
-                <label className="text-sm font-medium text-muted-foreground">利用場所（任意）</label>
-                <Input
-                  value={draft.place}
-                  onChange={(event) => update("place", event.target.value)}
-                  className="mt-1"
-                />
+              <div className="sm:col-span-2 space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">思い出マップ</label>
+                  <div className="mt-2 flex items-center gap-3 rounded-2xl bg-muted/40 px-4 py-3">
+                    <input
+                      id="memory-flag-edit"
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={draft.memoryFlag}
+                      onChange={(event) => {
+                        const checked = event.target.checked
+                        setDraft((prev) => {
+                          if (checked) {
+                            return { ...prev, memoryFlag: true }
+                          }
+                          const fallbackText = prev.location.name || prev.placeText
+                          return {
+                            ...prev,
+                            memoryFlag: false,
+                            location: createEmptyPlaceValue(),
+                            placeText: fallbackText,
+                          }
+                        })
+                      }}
+                    />
+                    <label htmlFor="memory-flag-edit" className="text-sm text-foreground">
+                      思い出マップに登録する
+                    </label>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    チェック時のみ Google の場所検索を使ってピンを登録します（確定時に課金が発生）。
+                  </p>
+                </div>
+                {draft.memoryFlag ? (
+                  <>
+                    <PlaceSelector
+                      value={draft.location}
+                      onChange={(val) => update("location", val)}
+                    />
+                    {draft.memoryFlag && !draft.location.placeId && (
+                      <p className="text-xs text-destructive">登録には場所の選択が必要です</p>
+                    )}
+                  </>
+                ) : (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">利用場所（任意）</label>
+                    <Input
+                      value={draft.placeText}
+                      onChange={(event) => update("placeText", event.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                )}
               </div>
               <div className="flex flex-col gap-2 sm:col-span-2">
                 <label className="text-sm font-medium text-muted-foreground">メモ（任意）</label>

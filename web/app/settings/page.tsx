@@ -35,6 +35,11 @@ type Member = {
   };
 };
 
+type NotificationSummary = {
+  id?: string;
+  read?: boolean;
+};
+
 function SettingsContent() {
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [loadingInvite, setLoadingInvite] = useState(false);
@@ -51,6 +56,7 @@ function SettingsContent() {
   const [signingOut, setSigningOut] = useState(false);
   const router = useRouter();
   const { show } = useToast();
+  const [notifications, setNotifications] = useState<NotificationSummary[]>([]);
 
   const normalizeMember = useCallback(
     (raw: unknown): Member => {
@@ -221,6 +227,34 @@ function SettingsContent() {
     }
   };
 
+  useEffect(() => {
+    let active = true;
+    let timer: number | undefined;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/notifications", { cache: "no-store" });
+        if (!res.ok) throw new Error("通知の取得に失敗しました");
+        const list = await res.json();
+        if (!active) return;
+        setNotifications(Array.isArray(list) ? (list as NotificationSummary[]) : []);
+      } catch (err) {
+        console.error(err);
+        if (active) setNotifications([]);
+      } finally {
+        if (active) {
+          timer = window.setTimeout(load, 30_000);
+        }
+      }
+    };
+    load();
+    return () => {
+      active = false;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, []);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
   return (
     <main>
       <AppHeader title="設定" />
@@ -283,6 +317,30 @@ function SettingsContent() {
             <Link href="/settings/categories">
               <Button variant="secondary" className="h-9">
                 カテゴリ管理ページを開く
+              </Button>
+            </Link>
+          </div>
+        </Card>
+
+        <Card className="space-y-4 p-4 md:p-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-medium">通知</h2>
+              <span
+                className={clsx(
+                  "rounded-full px-3 py-1 text-xs font-medium",
+                  unreadCount > 0 ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground",
+                )}
+              >
+                未読 {unreadCount} 件
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">お知らせやリアクションの新着をまとめて管理できます。</p>
+          </div>
+          <div>
+            <Link href="/notifications">
+              <Button variant="secondary" className="h-9">
+                通知一覧を開く
               </Button>
             </Link>
           </div>

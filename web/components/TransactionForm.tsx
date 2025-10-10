@@ -6,6 +6,7 @@ import { Input } from './ui/input'
 import { Select } from './ui/select'
 import { DatePicker } from './ui/date-picker'
 import { Button } from './ui/button'
+import PlaceSelector, { type PlaceSelectorValue, createEmptyPlaceValue } from '@/components/PlaceSelector'
 
 type Kind = 'income' | 'expense'
 
@@ -27,7 +28,9 @@ type TxDraft = {
   amount: string
   category_id: string
   account_id: string
-  place: string
+  location: PlaceSelectorValue
+  placeText: string
+  memoryFlag: boolean
   memo: string
 }
 
@@ -39,7 +42,9 @@ const initialDraft: TxDraft = {
   amount: '',
   category_id: '',
   account_id: '',
-  place: '',
+  location: createEmptyPlaceValue(),
+  placeText: '',
+  memoryFlag: false,
   memo: '',
 }
 
@@ -48,7 +53,37 @@ export default function TransactionForm() {
     if (typeof window === 'undefined') return initialDraft
     try {
       const raw = window.localStorage.getItem(DRAFT_KEY)
-      if (raw) return { ...initialDraft, ...JSON.parse(raw) }
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<TxDraft> & { place?: string }
+        const location = (() => {
+          if (parsed.location && typeof parsed.location === 'object') {
+            return {
+              placeId: parsed.location.placeId ?? null,
+              sessionToken: null,
+              name: parsed.location.name ?? '',
+              formattedAddress: parsed.location.formattedAddress ?? '',
+            }
+          }
+          if (typeof parsed.place === 'string' && parsed.place.trim()) {
+            const fallback = createEmptyPlaceValue()
+            return { ...fallback, name: parsed.place.trim() }
+          }
+          return createEmptyPlaceValue()
+        })()
+        const placeText =
+          typeof parsed.placeText === 'string'
+            ? parsed.placeText
+            : typeof parsed.place === 'string'
+              ? parsed.place
+              : ''
+        return {
+          ...initialDraft,
+          ...parsed,
+          location,
+          placeText,
+          memoryFlag: parsed.memoryFlag ?? false,
+        }
+      }
     } catch {}
     return initialDraft
   })
@@ -111,6 +146,7 @@ export default function TransactionForm() {
     if (!Number.isInteger(amount) || amount < 0) return '金額は0以上の整数を入力してください'
     if (!draft.category_id) return 'カテゴリを選択してください'
     if (!draft.account_id) return 'アカウントを選択してください'
+    if (draft.memoryFlag && !draft.location.placeId) return '思い出マップに登録する場合は場所を選択してください'
     return null
   }
 
@@ -123,18 +159,31 @@ export default function TransactionForm() {
     }
     setSubmitting(true)
     try {
+      const payload: Record<string, unknown> = {
+        kind: draft.kind,
+        occurred_on: draft.occurred_on,
+        amount: Number(draft.amount),
+        category_id: draft.category_id,
+        account_id: draft.account_id,
+        memo: draft.memo || undefined,
+      }
+
+      if (draft.memoryFlag) {
+        const placeName = draft.location.name.trim()
+        payload.place = placeName ? placeName : undefined
+        payload.place_id = draft.location.placeId || undefined
+        payload.place_session_token = draft.location.sessionToken || undefined
+        payload.memory_flag = true
+      } else {
+        const placeText = draft.placeText.trim()
+        payload.place = placeText ? placeText : undefined
+        payload.memory_flag = false
+      }
+
       const res = await fetch('/api/transactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kind: draft.kind,
-          occurred_on: draft.occurred_on,
-          amount: Number(draft.amount),
-          category_id: draft.category_id,
-          account_id: draft.account_id,
-          place: draft.place || undefined,
-          memo: draft.memo || undefined,
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const j: unknown = await res.json().catch(() => null)
@@ -151,7 +200,12 @@ export default function TransactionForm() {
       if (typeof window !== 'undefined') {
         window.scrollTo({ top: 0, behavior: 'smooth' })
       }
-      const next = { ...initialDraft, kind: draft.kind }
+      const next: TxDraft = {
+        ...initialDraft,
+        kind: draft.kind,
+        location: createEmptyPlaceValue(),
+        placeText: '',
+      }
       setDraft(next)
       try {
         window.localStorage.setItem(DRAFT_KEY, JSON.stringify(next))
@@ -257,14 +311,60 @@ export default function TransactionForm() {
             />
           </div>
 
-          <div className="sm:col-span-2">
-            <label className="text-sm font-medium text-muted-foreground">利用場所（任意）</label>
-            <Input
-              placeholder="店名など"
-              value={draft.place}
-              onChange={(e) => update('place', e.target.value)}
-              className="mt-2"
-            />
+          <div className="sm:col-span-2 space-y-3">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">思い出マップ</label>
+              <div className="mt-2 flex items-center gap-3 rounded-2xl bg-muted/40 px-4 py-3">
+                <input
+                  id="memory-flag"
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={draft.memoryFlag}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setDraft((prev) => {
+                      if (checked) {
+                        return { ...prev, memoryFlag: true }
+                      }
+                      const fallbackText = prev.location.name || prev.placeText
+                      return {
+                        ...prev,
+                        memoryFlag: false,
+                        location: createEmptyPlaceValue(),
+                        placeText: fallbackText,
+                      }
+                    })
+                  }}
+                />
+                <label htmlFor="memory-flag" className="text-sm text-foreground">
+                  思い出マップに登録する
+                </label>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                チェックすると Google の場所検索を使ってピンを登録できます（確定時のみ課金）。
+              </p>
+            </div>
+            {draft.memoryFlag ? (
+              <>
+                <PlaceSelector
+                  value={draft.location}
+                  onChange={(val) => update('location', val)}
+                />
+                {draft.memoryFlag && !draft.location.placeId && (
+                  <p className="text-xs text-destructive">登録には場所の選択が必要です</p>
+                )}
+              </>
+            ) : (
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">利用場所（任意）</label>
+                <Input
+                  placeholder="店名など"
+                  value={draft.placeText}
+                  onChange={(e) => update('placeText', e.target.value)}
+                  className="mt-2"
+                />
+              </div>
+            )}
           </div>
 
           <div className="sm:col-span-2">

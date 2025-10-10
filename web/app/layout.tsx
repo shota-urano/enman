@@ -5,6 +5,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import AuthCookieSync from "@/components/AuthCookieSync";
 import LumaBarClient from "@/components/LumaBarClient";
 import OnboardingModal from "@/components/OnboardingModal";
+import FeatureWalkthroughModal from "@/components/FeatureWalkthroughModal";
 import ProfileCelebration from "@/components/ProfileCelebration";
 
 // Use Noto Sans JP as primary rounded-friendly Japanese font
@@ -76,6 +77,7 @@ export default function RootLayout({
           <AuthCookieSync />
           {/* Show onboarding only for first login (no household membership) */}
           <OnboardingModal />
+          <FeatureWalkthroughModal />
           <ProfileCelebration />
           {children}
           {/* Global bottom navigation */}

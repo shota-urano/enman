@@ -15,6 +15,10 @@ type Tx = {
   category_id: string;
   account_id: string;
   place?: string | null;
+  place_id?: string | null;
+  memory_flag?: boolean;
+  place_name?: string | null;
+  place_formatted_address?: string | null;
   memo?: string | null;
   created_by: string;
   creator?: {
@@ -117,10 +121,18 @@ function TransactionDetailScreen() {
               <div className="text-sm text-muted-foreground">アカウントID</div>
               <div className="text-base">{tx.account_id}</div>
 
-              {tx.place && (
+              {(tx.place || tx.place_formatted_address) && (
                 <>
                   <div className="text-sm text-muted-foreground">場所</div>
-                  <div className="text-base">{tx.place}</div>
+                  <div className="text-base font-medium">{tx.place ?? tx.place_name ?? "名称未設定"}</div>
+                  {tx.place_formatted_address && (
+                    <div className="text-xs text-muted-foreground mt-1">{tx.place_formatted_address}</div>
+                  )}
+                  {tx.memory_flag && (
+                    <div className="mt-1 inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary">
+                      思い出マップ登録済み
+                    </div>
+                  )}
                 </>
               )}
 

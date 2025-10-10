@@ -6,6 +6,8 @@ import { categoriesRepository } from '@/server/repositories/categoriesRepository
 import { accountsRepository } from '@/server/repositories/accountsRepository'
 import { txCreateSchema } from '@/server/schemas/transaction'
 import { profilesRepository } from '@/server/repositories/profilesRepository'
+import { ensurePlaceRecord } from '@/server/services/placeResolver'
+import type { TxCreateInput } from '@/server/schemas/transaction'
 
 function isMonth(v: string) {
   return /^\d{4}-\d{2}$/.test(v)
@@ -63,6 +65,8 @@ export async function GET(req: NextRequest) {
           category_name: catMap.get(t.category_id),
           memo: t.memo ?? undefined,
           place: t.place ?? undefined,
+          place_id: t.place_id ?? undefined,
+          memory_flag: t.memory_flag ?? false,
           account_name: accMap.get(t.account_id),
           created_by: t.created_by,
           creator: {
@@ -110,10 +114,26 @@ export async function POST(req: NextRequest) {
       throw badRequest(message, parsed.error)
     }
 
+    let placeRecord: Awaited<ReturnType<typeof ensurePlaceRecord>> | null = null
+    if (parsed.data.place_id) {
+      placeRecord = await ensurePlaceRecord(parsed.data.place_id, parsed.data.place_session_token)
+    }
+
+    const memoryFlag = parsed.data.memory_flag === true && placeRecord ? true : false
+    const placeLabel = parsed.data.place ?? placeRecord?.name ?? null
+
+    const { place_session_token: _token, ...rest } = parsed.data
+    const payload: TxCreateInput = {
+      ...rest,
+      place: placeLabel ?? undefined,
+      place_id: placeRecord?.place_id,
+      memory_flag: memoryFlag,
+    }
+
     const created = await transactionsRepository.create(
       session.householdId!,
       session.userId,
-      parsed.data,
+      payload,
       { accessToken: session.token },
     )
     return NextResponse.json(created, { status: 201 })

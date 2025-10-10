@@ -1,10 +1,10 @@
 "use client"
 import * as React from "react"
-import { Bell, Settings, CalendarDays, BarChart3, Plus } from "lucide-react"
+import { Settings, CalendarDays, BarChart3, Plus, MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export type LumaBarProps = {
-  current?: "calendar" | "reports" | "new" | "alerts" | "settings"
+  current?: "calendar" | "reports" | "memories" | "new" | "settings"
   onNavigate?: (to: NonNullable<LumaBarProps["current"]>) => void
   className?: string
   badges?: Partial<Record<NonNullable<LumaBarProps["current"]>, number>>
@@ -50,9 +50,9 @@ export default function LumaBar({ current = "calendar", onNavigate, className, b
         >
           {props.label}
         </span>
-        {props.id === "alerts" && (badges?.alerts ?? 0) > 0 && (
+        {props.id === "settings" && (badges?.settings ?? 0) > 0 && (
           <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(255,163,179,1)] to-[rgba(255,120,148,0.9)] px-1 text-[10px] font-medium text-white shadow-neumorphic-soft">
-            {Math.min(badges!.alerts!, 99)}
+            {Math.min(badges?.settings ?? 0, 99)}
           </span>
         )}
       </button>
@@ -76,7 +76,7 @@ export default function LumaBar({ current = "calendar", onNavigate, className, b
           </div>
           <Item id="new" icon={<Plus className="size-5" />} label="追加" prominent />
           <div className="flex basis-0 flex-1 items-center justify-evenly gap-3 md:gap-4 min-w-fit">
-            <Item id="alerts" icon={<Bell className="size-5" />} label="通知" />
+            <Item id="memories" icon={<MapPin className="size-5" />} label="思い出" />
             <Item id="settings" icon={<Settings className="size-5" />} label="設定" />
           </div>
         </div>
