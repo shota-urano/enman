@@ -47,7 +47,14 @@ export const profilesRepository = {
 
     if (error) throw error
     if (!data) return null
-    const row = data as { user_id: string; display_name: string; avatar: string | null; created_at?: string; updated_at?: string }
+    const row = data as {
+      user_id: string
+      display_name: string
+      avatar: string | null
+      created_at?: string
+      updated_at?: string
+      latest_walkthrough_version?: string | null
+    }
     const avatar_path = normalizeAvatarPath(row.avatar)
     return {
       user_id: row.user_id,
