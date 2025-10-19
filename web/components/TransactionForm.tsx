@@ -36,21 +36,31 @@ type TxDraft = {
 
 const DRAFT_KEY = 'transaction_form_draft'
 
-const initialDraft: TxDraft = {
-  kind: 'expense',
-  occurred_on: new Date().toISOString().slice(0, 10),
-  amount: '',
-  category_id: '',
-  account_id: '',
-  location: createEmptyPlaceValue(),
-  placeText: '',
-  memoryFlag: false,
-  memo: '',
+function getToday(): string {
+  const now = new Date()
+  const offset = now.getTimezoneOffset()
+  const local = new Date(now.getTime() - offset * 60 * 1000)
+  return local.toISOString().slice(0, 10)
+}
+
+function createInitialDraft(): TxDraft {
+  return {
+    kind: 'expense',
+    occurred_on: getToday(),
+    amount: '',
+    category_id: '',
+    account_id: '',
+    location: createEmptyPlaceValue(),
+    placeText: '',
+    memoryFlag: false,
+    memo: '',
+  }
 }
 
 export default function TransactionForm() {
   const [draft, setDraft] = React.useState<TxDraft>(() => {
-    if (typeof window === 'undefined') return initialDraft
+    const baseDraft = createInitialDraft()
+    if (typeof window === 'undefined') return baseDraft
     try {
       const raw = window.localStorage.getItem(DRAFT_KEY)
       if (raw) {
@@ -77,7 +87,7 @@ export default function TransactionForm() {
               ? parsed.place
               : ''
         return {
-          ...initialDraft,
+          ...baseDraft,
           ...parsed,
           location,
           placeText,
@@ -85,7 +95,7 @@ export default function TransactionForm() {
         }
       }
     } catch {}
-    return initialDraft
+    return baseDraft
   })
   const [saving, setSaving] = React.useState(false)
   const [submitting, setSubmitting] = React.useState(false)
@@ -200,8 +210,9 @@ export default function TransactionForm() {
       if (typeof window !== 'undefined') {
         window.scrollTo({ top: 0, behavior: 'smooth' })
       }
+      const baseDraft = createInitialDraft()
       const next: TxDraft = {
-        ...initialDraft,
+        ...baseDraft,
         kind: draft.kind,
         location: createEmptyPlaceValue(),
         placeText: '',

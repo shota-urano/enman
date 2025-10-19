@@ -1,12 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-import { commentsRepository, type Comment } from '@/server/repositories/commentsRepository'
-import { createSupabaseAdmin, type SupabaseAdminClient } from '@/server/clients/supabase'
-import type { CommentCreateInput } from '@/server/schemas/comment'
-
 vi.mock('@/server/clients/supabase', () => ({
   createSupabaseAdmin: vi.fn(),
 }))
+
+vi.mock('@/server/repositories/profilesRepository', () => ({
+  profilesRepository: {
+    list: vi.fn(),
+    ensure: vi.fn(),
+    DEFAULT_NAME: 'ななし',
+  },
+}))
+
+import { commentsRepository, type Comment } from '@/server/repositories/commentsRepository'
+import { createSupabaseAdmin, type SupabaseAdminClient } from '@/server/clients/supabase'
+import { profilesRepository } from '@/server/repositories/profilesRepository'
+import type { CommentCreateInput } from '@/server/schemas/comment'
+
+const profilesRepositoryMock = vi.mocked(profilesRepository)
 
 type QueryResult<T> = { data: T; error: null } | { data: null; error: Error }
 const ok = <T,>(data: T): QueryResult<T> => ({ data, error: null } as QueryResult<T>)
@@ -14,6 +25,7 @@ const ok = <T,>(data: T): QueryResult<T> => ({ data, error: null } as QueryResul
 interface SelectChain<T> {
   select: (s: string) => SelectChain<T>
   eq: (c: string, v: unknown) => SelectChain<T>
+  in?: (c: string, v: unknown[]) => SelectChain<T>
   order?: (c: string, o: { ascending: boolean }) => Promise<QueryResult<T[]>>
 }
 
@@ -26,7 +38,7 @@ interface InsertChain<T> {
 describe('commentsRepository', () => {
 
   beforeEach(() => {
-    vi.restoreAllMocks()
+    vi.clearAllMocks()
   })
 
   it('listByTransaction returns ordered comments', async () => {
@@ -43,6 +55,7 @@ describe('commentsRepository', () => {
     const chain: SelectChain<Comment> = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
       order: vi.fn().mockResolvedValue(ok(rows)),
     }
 
@@ -51,10 +64,30 @@ describe('commentsRepository', () => {
       from: vi.fn().mockReturnValue(chain),
     } as unknown as SupabaseAdminClient)
 
+    profilesRepositoryMock.list.mockResolvedValue({
+      u1: {
+        user_id: 'u1',
+        display_name: 'ユーザー1',
+        avatar_path: null,
+        avatar_url: 'https://example.com/avatar.png',
+        latest_walkthrough_version: null,
+      },
+    })
+
     const result = await commentsRepository.listByTransaction('h1', 't1')
-    expect(result).toEqual(rows)
+    expect(result).toEqual([
+      {
+        ...rows[0],
+        author: {
+          user_id: 'u1',
+          display_name: 'ユーザー1',
+          avatar_url: 'https://example.com/avatar.png',
+        },
+      },
+    ])
     expect(chain.eq).toHaveBeenCalledWith('household_id', 'h1')
     expect(chain.eq).toHaveBeenCalledWith('transaction_id', 't1')
+    expect(profilesRepositoryMock.list).toHaveBeenCalledWith(['u1'])
   })
 
   it('create inserts and returns created comment', async () => {
@@ -75,9 +108,25 @@ describe('commentsRepository', () => {
       from: vi.fn().mockReturnValue(chain),
     } as unknown as SupabaseAdminClient)
 
+    profilesRepositoryMock.ensure.mockResolvedValue({
+      user_id: 'u1',
+      display_name: 'ユーザー1',
+      avatar_path: null,
+      avatar_url: 'https://example.com/avatar.png',
+      latest_walkthrough_version: null,
+    })
+
     const input: CommentCreateInput = { transaction_id: 't1', body: 'test' }
     const result = await commentsRepository.create('h', 'u1', input)
-    expect(result).toEqual(created)
+    expect(result).toEqual({
+      ...created,
+      author: {
+        user_id: 'u1',
+        display_name: 'ユーザー1',
+        avatar_url: 'https://example.com/avatar.png',
+      },
+    })
     expect(chain.insert).toHaveBeenCalled()
+    expect(profilesRepositoryMock.ensure).toHaveBeenCalledWith('u1')
   })
 })

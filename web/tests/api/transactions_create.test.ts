@@ -103,6 +103,7 @@ describe('POST /api/transactions', () => {
       category_id: '11111111-1111-1111-8aaa-111111111111',
       account_id: '22222222-2222-2222-8bbb-222222222222',
       place: 'スーパー',
+      memory_flag: false,
       memo: '夕飯',
       created_by: 'u-1',
     }
@@ -122,7 +123,16 @@ describe('POST /api/transactions', () => {
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json).toEqual(tx)
-    expect(transactionsRepository.create).toHaveBeenCalledWith('h-1', 'u-1', input, { accessToken: 't' })
+    expect(transactionsRepository.create).toHaveBeenCalledWith(
+      'h-1',
+      'u-1',
+      expect.objectContaining({
+        ...input,
+        memory_flag: false,
+        place_id: undefined,
+      }),
+      { accessToken: 't' },
+    )
   })
 
   it('accepts valid payload via schema', () => {

@@ -89,6 +89,7 @@ describe('PATCH /api/transactions/:id', () => {
       category_id: 'c-1',
       account_id: 'a-1',
       place: 'Store',
+      memory_flag: false,
       memo: 'updated memo',
       created_by: 'u-1',
     }

@@ -46,6 +46,7 @@ describe('transactionsRepository', () => {
         category_id: 'c1',
         account_id: 'a1',
         place: null,
+        memory_flag: false,
         memo: null,
         created_by: 'user-1',
       },
@@ -91,6 +92,7 @@ describe('transactionsRepository', () => {
       category_id: 'cat',
       account_id: 'acc',
       place: null,
+      memory_flag: false,
       memo: 'hello',
       created_by: 'user-1',
     }
