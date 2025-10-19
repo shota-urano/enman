@@ -81,6 +81,7 @@ describe('GET /api/transactions', () => {
         category_id: 'c-1',
         account_id: 'a-1',
         place: 'スーパー',
+        memory_flag: false,
         memo: '夕飯',
         created_by: 'u-1',
       },

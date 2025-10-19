@@ -73,6 +73,7 @@ describe('POST /api/subscriptions/:id/confirm', () => {
       category_id: 'c-1',
       account_id: 'a-1',
       place: null,
+      memory_flag: false,
       memo: 'Netflix',
       created_by: 'u-1',
     }
