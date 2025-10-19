@@ -15,10 +15,18 @@ vi.mock('@/server/repositories/transactionsRepository', () => ({
   },
 }))
 
+vi.mock('@/server/repositories/profilesRepository', () => ({
+  profilesRepository: {
+    list: vi.fn(),
+    DEFAULT_NAME: 'ななし',
+  },
+}))
+
 import * as authModule from '@/server/utils/auth'
 import type { Session } from '@/server/utils/auth'
 import * as repoModule from '@/server/repositories/transactionsRepository'
 import type { Transaction } from '@/server/repositories/transactionsRepository'
+import * as profilesModule from '@/server/repositories/profilesRepository'
 import { unauthorized, forbidden } from '@/server/utils/errors'
 
 function makeReq(url: string, headers: Record<string, string> = {}): NextRequest {
@@ -30,6 +38,7 @@ describe('GET /api/transactions', () => {
   const getSession = vi.mocked(authModule.getSession)
   const assertHouseholdMember = vi.mocked(authModule.assertHouseholdMember)
   const transactionsRepository = vi.mocked(repoModule.transactionsRepository)
+  const profilesRepository = vi.mocked(profilesModule.profilesRepository)
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -87,6 +96,15 @@ describe('GET /api/transactions', () => {
       },
     ]
     transactionsRepository.listByMonth.mockResolvedValue(list)
+    profilesRepository.list.mockResolvedValue({
+      'u-1': {
+        user_id: 'u-1',
+        display_name: 'テスト太郎',
+        avatar_path: null,
+        avatar_url: 'https://example.com/avatar.png',
+        latest_walkthrough_version: null,
+      },
+    })
 
     const req = makeReq('http://test.local/api/transactions?month=2025-09&kind=expense', {
       'x-household-id': 'h-1',
@@ -94,7 +112,16 @@ describe('GET /api/transactions', () => {
     const res = await route.GET(req)
     expect(res.status).toBe(200)
     const json = await res.json()
-    expect(json).toEqual(list)
+    expect(json).toEqual([
+      {
+        ...list[0],
+        creator: {
+          user_id: 'u-1',
+          display_name: 'テスト太郎',
+          avatar_url: 'https://example.com/avatar.png',
+        },
+      },
+    ])
     expect(transactionsRepository.listByMonth).toHaveBeenCalledWith('h-1', '2025-09', 'expense')
   })
 

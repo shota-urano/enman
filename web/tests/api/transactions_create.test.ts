@@ -123,7 +123,16 @@ describe('POST /api/transactions', () => {
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json).toEqual(tx)
-    expect(transactionsRepository.create).toHaveBeenCalledWith('h-1', 'u-1', input, { accessToken: 't' })
+    expect(transactionsRepository.create).toHaveBeenCalledWith(
+      'h-1',
+      'u-1',
+      expect.objectContaining({
+        ...input,
+        memory_flag: false,
+        place_id: undefined,
+      }),
+      { accessToken: 't' },
+    )
   })
 
   it('accepts valid payload via schema', () => {
